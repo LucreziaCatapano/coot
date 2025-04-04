@@ -178,7 +178,7 @@ make_mesh_for_helical_representation(mmdb::Manager *mol,
          ring_points.push_back(clipper::Coord_orth(x,y,z));
          ring_point_normals.push_back(clipper::Coord_orth(xn,yn,zn));
       }
-
+      glm::vec4 col(0.5, 0.5, 0.5, 1.0);
       for (const auto &helix : helices) {
 
          std::vector<coot::api::vnc_vertex> vertices;
@@ -199,7 +199,12 @@ make_mesh_for_helical_representation(mmdb::Manager *mol,
                   clipper::Coord_orth t_pt = rtop * pt;
                   clipper::Coord_orth t_n = rtop_for_normals * n_pt;
                   transformed_points[i_pt] = t_pt;
-                  rotated_normals[i_pt] = t_n;
+                  rotated_normals[i_pt] = t_n; 
+                  glm::vec3 v(t_pt.x(), t_pt.y(), t_pt.z());
+                  glm::vec3 n(t_n.x(), t_n.y(), t_n.z());
+                  coot::api::vnc_vertex vnc_v(v, n, col);
+                  vertices.push_back(vnc_v);
+
                }
             }
          }
@@ -207,72 +212,33 @@ make_mesh_for_helical_representation(mmdb::Manager *mol,
          // now make the triangle for that helix
          //
          // try simple-minded first
-
+         for (unsigned int i=0; i<(n_rings_in_helix-1); i++) {
+            unsigned int ring_offset = i * n_slices_for_helices;
+            for (unsigned int j=0; j<n_slices_for_helices-1; j++) {
+               // winding is important
+               g_triangle t1(ring_offset + j + 1, ring_offset + j, ring_offset + n_slices_for_helices + j);
+               g_triangle t2(ring_offset + n_slices_for_helices + j, ring_offset + n_slices_for_helices + j + 1, ring_offset + j + 1);
+               triangles.push_back(t1);
+               // 
+               if (t1.point_id[0]>vertices.size() ||
+                   t1.point_id[1]>vertices.size() ||
+                   t1.point_id[2]>vertices.size()) {
+                  std::cout << "ERROR:: triangle point id out of range " << t1.point_id[0] << " "
+                            << t1.point_id[1] << " " << t1.point_id[2] << std::endl;
+               }
+            }
+            // now the join the end to the start:
+            g_triangle t_end_1(ring_offset, ring_offset + n_slices_for_helices - 1, ring_offset + n_slices_for_helices);
+            g_triangle t_end_2(ring_offset + n_slices_for_helices, ring_offset + n_slices_for_helices -1, ring_offset + 2 * n_slices_for_helices -1);
+            triangles.push_back(t_end_1);
+            triangles.push_back(t_end_2);
+         }
+         m.add_submesh(coot::simple_mesh_t(vertices, triangles));
       }
    }
 
    return m;
 }
-
-coot::simple_mesh_t 
-make_mesh_for_helical_representation(mmdb::Manager *mol, 
-                                     const std::string &atom_selection_str, 
-                                     float radius_for_helices, 
-                                     unsigned int n_slices_for_helices) {
-   coot::simple_mesh_t m;
-   class helix_t{
-      public:
-      std::string chain_id;
-      int resno_start;
-      int resno_end;
-      helix_t() : chain_id(""), resno_start(-9999), resno_end(-9999) {}
-      helix_t(const std::string &c, int r1, int r2) : chain_id(c), resno_start(r1), resno_end(r2) {}
-   };
-
-   // find all the helices:
-   std::vector<helix_t> helices;
-
-   for (int imod = 1; imod <= mol->GetNumberOfModels(); imod++) {
-      mmdb::Model *model_p = mol->GetModel(imod);
-      if (model_p) {
-         int n_chains = model_p->GetNumberOfChains();
-         for (int ichain=0; ichain<n_chains; ichain++) {
-            mmdb::Chain *chain_p = model_p->GetChain(ichain);
-            int n_res = chain_p-> GetNumberOfResidues();
-            helix_t helix_running;
-            for (int ires=0; ires<n_res; ires++) {
-               mmdb::Residue *residue_p = chain_p->GetResidue(ires);
-               if (residue_p) {
-                  if (residue_p->SSE == mmdb::SSE_Helix) {
-                     if (helix_running.resno_start == -9999) {
-                        helix_running.resno_start = residue_p->GetSeqNum();
-                        helix_running.chain_id = chain_p->GetChainID();
-                     } else {
-                        // we are in a helix
-                        helix_running.resno_end = residue_p->GetSeqNum();
-                     }
-                  } else {
-                     if (helix_running.resno_start == -9999) {
-                        // nothing
-                     } else {
-                        helices.push_back(helix_running);
-                        helix_running = helix_t();
-                     }
-                  }
-               }
-            }      
-         }
-      }
-   }
-   
-   for (const auto &h : helices) {
-      std::cout << "helix:" << h.chain_id << " " << h.resno_start << " " << h.resno_end
-                << std::endl;
-   }
-
-   return m;
-
-   }
 
 coot::simple_mesh_t
 make_tubes_representation(mmdb::Manager *mol,
@@ -579,7 +545,7 @@ make_coil_for_tubes_representation(mmdb::Manager *mol,
 
          try {
 
-            if (false) {
+            if (true) {
                std::cout << "debug:: a run of residues " << i << " has "
                          << ctlPts.size() << " control points" << std::endl;
                for (unsigned int ii=0; ii<ctlPts.size(); ii++)
@@ -589,7 +555,7 @@ make_coil_for_tubes_representation(mmdb::Manager *mol,
             std::vector<FCXXCoord> v = cs.SplineCurve(ctlPts, nsteps, Cn, iinterp);
             // std::cout << "spline-curve size " << v.size() << std::endl;
 
-            if (false) {
+            if (true) {
                for (unsigned int ii=0; ii<v.size(); ii++)
                   std::cout << "debug:: spline-curve-point     " << v[ii] << std::endl;
             }
