@@ -51,6 +51,7 @@
 #include "compat/coot-sysdep.h"
 
 #include "lbg-graph.hh"
+#include "utils/xdg-base.hh"
 
 // std::string 
 // coot::basic_dict_restraint_t::atom_id_1_4c() const {
@@ -566,7 +567,7 @@ coot::protein_geometry::try_dynamic_add(const std::string &resname, int read_num
    // $prefix/share/coot onto which we tag a "lib" dir.
    // 
 
-   char *s  = getenv("COOT_REFMAC_LIB_DIR");
+   char *s    = getenv("COOT_REFMAC_LIB_DIR");
    char *cmld = getenv("COOT_MONOMER_LIB_DIR");
 
    if (s) {
@@ -708,6 +709,40 @@ coot::protein_geometry::try_dynamic_add(const std::string &resname, int read_num
 	       }
 	    }
 	 }
+      }
+   }
+
+   if (!success) {
+      // try the XDG Base Directory Protocol cache
+      xdg_t xdg;
+      std::filesystem::path ch = xdg.get_cache_home();
+      if (std::filesystem::exists(ch)) {
+	 std::filesystem::path monomers_path = ch / "monomers";
+	 if (std::filesystem::exists(monomers_path)) {
+	    const char rs = resname[0];
+	    const char v = tolower(rs); // get the sub directory name
+	    std::string letter(1, v);
+	    std::filesystem::path sub_dir = ch / letter;
+	    if (std::filesystem::exists(sub_dir)) {
+	       std::string cif_file_name = resname + ".cif";
+	       std::filesystem::path cif_file_path = sub_dir / cif_file_name;
+	       if (std::filesystem::exists(cif_file_path)) {
+		  // read it
+		  read_refmac_mon_lib_info_t rmit = init_refmac_mon_lib(cif_file_path.string(), read_number);
+		  success = rmit.success;
+	       } else {
+		  // we will need to download it then
+		  // and put it in the above directory)
+		  std::cout << "DEBUG:: try_dynamic_add(): " << cif_file_path.string() << " does not exist" << std::endl;
+	       }
+	    } else {
+	       std::cout << "DEBUG:: try_dynamic_add(): " << sub_dir.string() << " does not exist" << std::endl;
+	    }
+	 } else {
+	    std::cout << "DEBUG:: try_dynamic_add(): " << monomers_path.string() << " does not exist" << std::endl;
+	 }
+      } else {
+	 std::cout << "DEBUG:: try_dynamic_add(): " << ch.string() << " does not exist" << std::endl;
       }
    }
 
@@ -1271,6 +1306,12 @@ coot::protein_geometry::have_restraints_dictionary_for_residue_types(const std::
                                                                      int imol_enc,
                                                                      int read_number) {
 
+   if (false) {
+      std::cout << "debug:: in have_restraints_dictionary_for_residue_types() --- start --- " << std::endl;
+      for (const auto &r : residue_types)
+	 std::cout << "debug:: in have_restraints_dictionary_for_residue_types() type :" << r << ":" << std::endl;
+   }
+
    bool have_all = true;
    for (unsigned int i=0; i<residue_types.size(); i++) {
       if (! have_all) continue;
@@ -1278,7 +1319,11 @@ coot::protein_geometry::have_restraints_dictionary_for_residue_types(const std::
       int idx = get_monomer_restraints_index(rt, imol_enc, false);
       if (idx != -1) {
          const coot::dictionary_residue_restraints_t &restraints = dict_res_restraints[idx].second;
-         if (restraints.bond_restraint.empty()) {
+	 // this test does not make sense for MG, or other single atoms
+         // if (restraints.bond_restraint.empty()) {
+	 bool has_bonds = false;
+	 if (restraints.atom_info.size() > 1) has_bonds = true;
+         if (has_bonds && restraints.bond_restraint.empty()) {
             have_all = false;
             break;
          } else {
@@ -1694,15 +1739,17 @@ coot::protein_geometry::get_monomer_restraints_index(const std::string &monomer_
 						     bool allow_minimal_flag) const {
 
    int r = -1;
-   bool debug = false;
+   bool debug = false; // hello again
 
    unsigned int nrest = dict_res_restraints.size();
    for (unsigned int i=0; i<nrest; i++) {
+
       if (debug)
 	 std::cout << "in get_monomer_restraints_index() comparing dict: \""
 		   << dict_res_restraints[i].second.residue_info.comp_id << "\" vs mine: \"" << monomer_type
 		   << "\" and dict: " << dict_res_restraints[i].first << " vs mine: " <<  imol_enc
 		   << "     with allow_minimal_flag " << allow_minimal_flag << std::endl;
+
       if (dict_res_restraints[i].second.residue_info.comp_id == monomer_type) {
 	 if (matches_imol(dict_res_restraints[i].first, imol_enc)) {
 	    // if (dict_res_restraints[i].first == imol_enc) {
@@ -1758,6 +1805,8 @@ coot::protein_geometry::get_monomer_restraints_index(const std::string &monomer_
 	 }
       }
    }
+
+   // std::cout << "get_monomer_restraints_index() for " << monomer_type << " returns r " << r << std::endl;
 
    return r;
 }
@@ -2280,12 +2329,16 @@ coot::protein_geometry::get_group(mmdb::Residue *r) const {
 
 std::string
 coot::protein_geometry::get_group(const std::string &res_name_in) const {
-   
+
    bool found = false;
    std::string group;
    std::string res_name = res_name_in;
-   if (res_name.length() > 3)
-      res_name = res_name.substr(0,2);
+
+   // 20250331-PE Why would I do this?
+   //             Comment it out.
+   // if (res_name.length() > 3)
+   //    res_name = res_name.substr(0,2);
+
    unsigned int s = size(); // fails if the protein_geometry pointer was not valid
    for (unsigned int i=0; i<s; i++) {
       if (three_letter_code(i) == res_name) {
@@ -2304,7 +2357,7 @@ coot::protein_geometry::get_group(const std::string &res_name_in) const {
    }
 
    if (! found) {
-      std::string s = "No dictionary group found for residue type :";
+      std::string s = "WARNING:: get_group(): No dictionary group found for residue type :";
       s += res_name;
       s += ":";
       throw std::runtime_error(s);

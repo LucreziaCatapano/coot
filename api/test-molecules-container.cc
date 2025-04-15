@@ -2790,6 +2790,33 @@ int test_instanced_rota_markup(molecules_container_t &mc) {
    return status;
 }
 
+int test_instanced_goodsell_style_mesh(molecules_container_t &mc) {
+
+   starting_test(__FUNCTION__);
+   int status = 0;
+   mc.set_use_gemmi(false);
+   int imol = mc.read_pdb(reference_data("pdb8ox7.ent"));
+   float cwr = 97.0;
+   coot::instanced_mesh_t im = mc.get_goodsell_style_mesh_instanced(imol, cwr, 0.8, 0.6);
+   std::vector<std::pair<glm::vec4, unsigned int> > ca = colour_analysis(im);
+
+   // check that we have colour variation
+   unsigned int n_above = 0;
+   unsigned int n_below = 0;
+   for (unsigned int i=0; i<im.geom.size(); i++) {
+      const coot::instanced_geometry_t &ig = im.geom[i];
+      for (unsigned int jj=0; jj<ig.instancing_data_A.size(); jj++) {
+         const auto &col =  ig.instancing_data_A[jj].colour;
+         if (col.r > 0.8) n_above++;
+         if (col.r < 0.5) n_below++;
+      }
+   }
+   if (n_above > 1)
+      if (n_below > 1)
+         status = 1;
+   return status;
+}
+
 int test_gaussian_surface(molecules_container_t &mc) {
 
    starting_test(__FUNCTION__);
@@ -4951,7 +4978,7 @@ int test_gltf_export(molecules_container_t &mc) {
    float contour_level = 0.4;
    std::cout << "-------------------------------------------------- map mesh " << std::endl;
    coot::simple_mesh_t map_mesh = mc.get_map_contours_mesh(imol_map, p.x(), p.y(), p.z(), radius, contour_level);
-   map_mesh.export_to_gltf("map-around-ligand.glb", true);
+   map_mesh.export_to_gltf("map-around-ligand.glb", 0.5, 0.5, true);
 
    std::cout << "-------------------------------------------------- ligand mesh " << std::endl;
 
@@ -4961,7 +4988,7 @@ int test_gltf_export(molecules_container_t &mc) {
    std::cout << "test_gltf_export() imol_frag " << imol_frag << std::endl;
    coot::instanced_mesh_t im    = mc.get_bonds_mesh_instanced(imol_frag, mode, true, 0.1, 1.0, false, false, true, 1);
    coot::simple_mesh_t sm_lig = coot::instanced_mesh_to_simple_mesh(im);
-   sm_lig.export_to_gltf("lig.glb", true);
+   sm_lig.export_to_gltf("lig.glb", 0.5, 0.5, true);
 
    std::cout << "-------------------------------------------------- neighbour mesh " << std::endl;
    std::vector<coot::residue_spec_t> neighbs = mc.get_residues_near_residue(imol, "//A/1299", 4.2);
@@ -4969,7 +4996,7 @@ int test_gltf_export(molecules_container_t &mc) {
    mc.set_draw_missing_residue_loops(false);
    coot::instanced_mesh_t im_neighbs = mc.get_bonds_mesh_for_selection_instanced(imol, multi_cid, mode, true, 0.15, 1.0, false, false, true, 1);
    coot::simple_mesh_t sm_neighbs = coot::instanced_mesh_to_simple_mesh(im_neighbs);
-   sm_neighbs.export_to_gltf("neighbs.glb", true);
+   sm_neighbs.export_to_gltf("neighbs.glb", 0.5f, 0.5f, true);
 
    struct stat buf_1;
    int istat_1 = stat("lig.glb", &buf_1);
@@ -4998,7 +5025,7 @@ int test_gltf_export_via_api(molecules_container_t &mc) {
    int status = 0;
 
    mc.set_use_gemmi(true); // 20240727-PE there seems to be a memory problem when using gemmi atm
-                            // so for now, let's not use gemmi for the tests.
+                           // so for now, let's not use gemmi for the tests.
 
    int imol     = mc.read_pdb(reference_data("2vtq.cif"));
    int imol_map = mc.read_mtz(reference_data("moorhen-tutorial-map-number-1.mtz"), "FWT", "PHWT", "W", false, false);
@@ -5043,7 +5070,7 @@ int test_5char_ligand_merge(molecules_container_t &mc) {
    int status = 0;
    int imol_enc = coot::protein_geometry::IMOL_ENC_ANY;
 
-   int imol     = mc.read_pdb(reference_data("moorhen-tutorial-structure-number-1.pdb"));
+   int imol = mc.read_pdb(reference_data("moorhen-tutorial-structure-number-1.pdb"));
    mc.import_cif_dictionary(reference_data("acedrg-7z-new.cif"), imol_enc);
    int imol_lig = mc.get_monomer("7ZTVU");
    if (mc.is_valid_model_molecule(imol)) {
@@ -6771,6 +6798,7 @@ int main(int argc, char **argv) {
          status += run_test(test_HOLE, "HOLE", mc);
          status += run_test(test_is_nucleic_acid, "is nucleic acid?", mc);
          status += run_test(test_delete_all_carbohydrate, "delete all carbohydrate", mc);
+         status += run_test(test_instanced_goodsell_style_mesh, "instanced goodsell style mesh", mc);
          if (status == n_tests) all_tests_status = 0;
 
          print_results_summary();

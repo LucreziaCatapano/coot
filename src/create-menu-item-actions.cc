@@ -45,13 +45,15 @@
 #include "c-interface-ligands.hh" // 20230920-PE new layla interface functions
 #include "labelled-button-info.hh"
 #include "cc-interface.hh" // for fullscreen()
+#include "rotate-translate-modes.hh"
 
 // These don't work if they are in graphics-info-statics.cc
 // Possibly because the gui (this file included) is loaded at run-time.
 // 20250221-PE now thay are in graphics-info-statics also.
 // Hmm
-int graphics_info_t::scale_up_graphics = 1;
-int graphics_info_t::scale_down_graphics = 1;
+// 2025-03-25-PE don't declare these twice (i.e.not here)
+// int graphics_info_t::scale_up_graphics = 1;
+// int graphics_info_t::scale_down_graphics = 1;
 
 extern "C" { void load_tutorial_model_and_data(); }
 
@@ -300,6 +302,50 @@ void open_map_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filterselect);
    set_transient_for_main_window(dialog);
    gtk_widget_set_visible(dialog, TRUE);
+}
+
+void import_restraints(int imol) {
+
+   graphics_info_t g;
+   GtkWindow *parent_window = GTK_WINDOW(g.get_main_window());
+   GtkFileChooserAction action = GTK_FILE_CHOOSER_ACTION_OPEN;
+   GtkWidget *dialog = gtk_file_chooser_dialog_new("Open File",
+                                                   parent_window,
+                                                   action,
+                                                   ("_Cancel"),
+                                                   GTK_RESPONSE_CANCEL,
+                                                   ("_Open"),
+                                                   GTK_RESPONSE_ACCEPT,
+                                                   NULL);
+
+   const gchar *labels[]  = {NULL};
+   const gchar *options[] = {NULL};
+
+   auto import_restraints_response = +[] (GtkDialog *dialog, int response) {
+
+      int imol = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "imol"));
+      if (response == GTK_RESPONSE_ACCEPT) {
+         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+         GListModel *lm = gtk_file_chooser_get_files(chooser);
+         guint n_items = g_list_model_get_n_items (lm);
+         if (n_items > 0) {
+            for (unsigned int i=0; i<n_items; i++) {
+               gpointer item = g_list_model_get_item(lm, i);
+               GFile *f = G_FILE(item);
+               char *file_name = g_file_get_path(f);
+               if (file_name) {
+                  add_refmac_extra_restraints(imol, file_name);
+               }
+            }
+         }
+      }
+      gtk_window_close(GTK_WINDOW(dialog));
+      graphics_info_t::graphics_grab_focus();
+   };
+   g_object_set_data(G_OBJECT(dialog), "imol", GINT_TO_POINTER(imol));
+   g_signal_connect(dialog, "response", G_CALLBACK(import_restraints_response), NULL);
+   gtk_widget_set_visible(dialog, TRUE);
+
 }
 
 
@@ -1612,6 +1658,24 @@ void HOLE_action(GSimpleAction *simple_action,
    graphics_info_t::graphics_grab_focus();
 }
 
+void local_b_factor_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                           G_GNUC_UNUSED GVariant *parameter,
+                           G_GNUC_UNUSED gpointer user_data) {
+
+   std::cout << "local b-factor action" << std::endl;
+
+   GtkWidget *toolbar_hbox = widget_from_builder("main_window_toolbar_hbox");
+   GtkWidget *toggle_button = gtk_toggle_button_new_with_label("Local B-factors");
+   auto callback = +[] (GtkToggleButton *toggle_button, gpointer data) {
+      short int state = 0;
+      if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(toggle_button))) state = 1;
+      set_show_local_b_factors(state);
+   };
+   g_signal_connect(G_OBJECT(toggle_button), "toggled", G_CALLBACK(callback), nullptr);
+   gtk_box_append(GTK_BOX(toolbar_hbox), toggle_button);
+}
+
+
 void acedrg_link_interface_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                                   G_GNUC_UNUSED GVariant *parameter,
                                   G_GNUC_UNUSED gpointer user_data) {
@@ -1623,8 +1687,8 @@ void acedrg_link_interface_action(G_GNUC_UNUSED GSimpleAction *simple_action,
 }
 
 void run_acedrg_via_CCD_dictionary_download_action(G_GNUC_UNUSED GSimpleAction *simple_action,
-                                  G_GNUC_UNUSED GVariant *parameter,
-                                  G_GNUC_UNUSED gpointer user_data) {
+                                                   G_GNUC_UNUSED GVariant *parameter,
+                                                   G_GNUC_UNUSED gpointer user_data) {
 
    std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = active_atom_spec();
    if (pp.first) {
@@ -2041,6 +2105,19 @@ void delete_all_extra_restraints_action(G_GNUC_UNUSED GSimpleAction *simple_acti
 
 }
 
+void import_restraints_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                              G_GNUC_UNUSED GVariant *parameter,
+                              G_GNUC_UNUSED gpointer user_data) {
+
+   std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = active_atom_spec();
+   if (pp.first) {
+      int imol = pp.second.first;
+      import_restraints(imol); // use file browser
+   }
+   graphics_info_t::graphics_grab_focus();
+
+}
+
 void quick_ligand_validate_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                                   G_GNUC_UNUSED GVariant *parameter,
                                   G_GNUC_UNUSED gpointer user_data) {
@@ -2369,8 +2446,8 @@ void add_refine_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
       g_signal_connect(G_OBJECT(switch_rama), "state-set", G_CALLBACK(switch_rama_switched), nullptr);
       g_signal_connect(G_OBJECT(switch_rota), "state-set", G_CALLBACK(switch_rota_switched), nullptr);
 
-      GtkWidget *switch_contact_dots_label  = gtk_label_new("Intermediate Atom Contact Dots");
-      GtkWidget *switch_GM_restraints_label = gtk_label_new("Intermediate Atom GM Restraints");
+      GtkWidget *switch_contact_dots_label  = gtk_label_new("Intermediate Atoms Contact Dots");
+      GtkWidget *switch_GM_restraints_label = gtk_label_new("Intermediate Atoms GM Restraints");
       GtkWidget *switch_rama_label          = gtk_label_new("Ramachandran Probability Spheres");
       GtkWidget *switch_rota_label          = gtk_label_new("Rotamer Probability Dodecahedra");
 
@@ -3513,7 +3590,7 @@ check_delete_waters_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    if (imol_map < 0) {
       int n_map_molecules = graphics_info_t::n_map_molecules();
       if (n_map_molecules > 0)
-         show_select_map_dialog();
+         show_select_map_frame();
    }
 }
 
@@ -4213,11 +4290,13 @@ void
 fix_atom(GSimpleAction *simple_action,
          GVariant *parameter,
          gpointer user_data) {
-   
+
    graphics_info_t g;
    std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = g.active_atom_spec_simple();
+   std::cout << "debug:: in fix_atom() " << pp.first << " " << pp.second.first << " " << pp.second.second << std::endl;
    if (pp.first) {
       int imol = pp.second.first;
+      std::cout << "mark atom as fixed " << imol << " " << pp.second.second << std::endl;
       g.attach_buffers(); // 20220823-PE needed?
       g.mark_atom_as_fixed(imol, pp.second.second, true);
       g.graphics_draw(); // maybe not needed here
@@ -4232,10 +4311,11 @@ unfix_atom(GSimpleAction *simple_action,
 
    graphics_info_t g;
    std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = g.active_atom_spec_simple();
+   std::cout << "debug:: in unfix_atom() " << pp.first << " " << pp.second.first << " " << pp.second.second << std::endl;
    if (pp.first) {
       int imol = pp.second.first;
       g.attach_buffers(); // 20220823-PE needed?
-      g.mark_atom_as_fixed(imol, pp.second.second, true);
+      g.mark_atom_as_fixed(imol, pp.second.second, false);
       g.graphics_draw(); // maybe not needed here
    }
 }
@@ -4254,7 +4334,6 @@ unfix_all_atoms(GSimpleAction *simple_action,
    }
 }
 
-#include "rotate-translate-modes.hh" // move up                
 
 void
 rotate_translate_atom(GSimpleAction *simple_action,
@@ -4876,6 +4955,7 @@ create_actions(GtkApplication *application) {
    add_action( "distances_and_angles_action",  distances_and_angles_action);
    add_action("environment_distances_action", environment_distances_action);
    add_action(                 "HOLE_action",                  HOLE_action);
+   add_action(      "local_b_factors_action",        local_b_factor_action);
 
    // Validate
 
@@ -4997,5 +5077,6 @@ create_actions(GtkApplication *application) {
    add_action("generate_all_molecule_self_restraints_5_0_action",     generate_all_molecule_self_restraints_5_0_action);
    add_action("generate_all_molecule_self_restraints_6_0_action",     generate_all_molecule_self_restraints_6_0_action);
    add_action("delete_all_extra_restraints_action",        delete_all_extra_restraints_action);
+   add_action("import_restraints_action",                  import_restraints_action);
 
 }

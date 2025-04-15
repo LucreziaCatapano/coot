@@ -1082,6 +1082,7 @@ public:
    //! @param colour_scheme is one of "colorRampChainsScheme", "colorBySecondaryScheme", "Chain"
    //! @param style "Ribbon" or "MolecularSurface"
    //! @param secondary_structure_usage_flag  0 (USE_HEADER), 1 (DONT_USE) or 2 (CALC_SECONDARY_STRUCTURE)
+   //! @param file_name of the glTF (the file will be compressed, so choose ".glb" as the extension)
    void export_molecular_representation_as_gltf(int imol, const std::string &atom_selection_cid,
                                                const std::string &colour_scheme, const std::string &style,
                                                int secondary_structure_usage_flag,
@@ -1091,6 +1092,18 @@ public:
    //!
    void export_chemical_features_as_gltf(int imol, const std::string &cid,
                                          const std::string &file_name) const;
+
+   //! set the gltf PBR roughness factor
+   //!
+   //! @param imol is the model molecule index
+   //! @param roughness_factor is the factor for the roughness (0.0 to 1.0)
+   void set_gltf_pbr_roughness_factor(int imol, float roughness_factor);
+
+   //! set the gltf PBR metalicity factor
+   //!
+   //! @param imol is the model molecule index
+   //! @param metalicity is the factor for the roughness (0.0 to 1.0)
+   void set_gltf_pbr_metalicity_factor(int imol, float metalicity);
 
    //! Get colour table (for testing)
    //!
@@ -3228,7 +3241,7 @@ public:
    //! @param imol_protein is the model molecule index
    //! @param imol_map is the map molecule index
    //! @param imol_ligand is the ligand molecule index
-   //! @param n_rmsd number of sd, e.g. 4.8
+   //! @param n_rmsd the number of sd used as a cut-off for the map level when finding clusters, e.g. 1.2
    //! @param use_conformers is True for flexible ligands
    //! @param n_conformers set the number of conformers
    //!

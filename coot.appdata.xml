@@ -52,6 +52,51 @@
   <update_contact>pemsley_AT_mrc-lmb.cam.ac.uk</update_contact>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="1.1.15" date="2025-03-30">
+      <description>
+        <ul>
+          <li> o FEATURE: Drag and drop (partial - it works from the file browser,</li>
+            but not from CCP4i2)
+          <li> o FEATURE: set_use_vertex_gradients_for_map_normals() added to the Coot API</li>
+          <li> o CHANGE:  Fixed atoms are now draggable</li>
+          <li> o CHANGE:  max-closeness is no longer used to filter peaks in map_peaks_py()</li>
+          <li> o CHANGE:  Backtick for selection now also shows the residue range
+            (if set)</li>
+          <li> o BUG-FIX: Track-pad zooming fixed</li>
+          <li> o BUG-FIX: Residue Info dialog buttons now on the right hand side</li>
+          <li> o BUG-FIX: Fix and Unfix atom now work as expected</li>
+          <li> o BUG-FIX: Remove erroneous "No ligands Found" dialog when ligand fitting</li>
+          <li> o BUG-FIX: Select Map for Fitting dialog now behaves has expected
+            on reopen</li>
+          <li> o BUG-FIX: Merge Molecules dialog now behaves has expected on reopen</li>
+          <li> o BUG-FIX: Choose a better contour level for masked maps</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.1.14" date="2025-03-16">
+      <description>
+        <ul>
+          <li>FEATURE: Clark and Labute-like 2D-ligand environment view in Coot,
+             Moorhen and chapi.</li>
+          <li>FEATURE: Symmetry represented as solid model (no longer just lines)</li>
+          <li>FEATURE: new chapi functions: `is_nucleic_acid()` and `delete_all_carbohydrate()`</li>
+          <li>FEATURE: PAE Plots on downloading Alphafold models.</li>
+          <li>FEATURE: 3D symmetry.</li>
+          <li>CHANGE: Setting the primary mouse button for view rotation enables
+             secondary mouse button for zoom (like Old Coot).</li>
+          <li>CHANGE: chapi modules name now changed to coot_headless_api
+          so that the molecules_container object can be called
+          chapi.</li>
+          <li>CHANGE: Alphafold downloads are now XDG Base Directory compliant.</li>
+          <li>BUG-FIX: NCS Jumping has been fixed -  Bernhard Lohkamp.</li>
+          <li>BUG-FIX: unwritable XDG cache dir now longer causes a crash
+             [Jordan Dialpuri].</li>
+          <li>BUG-FIX: Shader for drawing ribbons.</li>
+          <li>BUG-FIX: About and Preferences dialogs can now be properly closed.</li>
+          <li>BUG-FIX: Texture handling for bad NBC markers updated [Fixes crash].</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.1.13" date="2025-02-24">
       <description>
         <ul>

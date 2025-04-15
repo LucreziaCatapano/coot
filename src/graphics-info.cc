@@ -315,7 +315,7 @@ graphics_info_t::get_biggest_model_molecule() {
    int n = n_molecules();
    for(int ii=0; ii<n; ii++) {
       if (is_valid_model_molecule(ii)) {
-         int n_atoms_mol = molecules[imol].atom_sel.n_selected_atoms;
+         int n_atoms_mol = molecules[ii].atom_sel.n_selected_atoms;
          if (n_atoms_mol > n_atoms_max) {
             imol = ii;
             n_atoms_max = n_atoms_mol;
@@ -1263,7 +1263,7 @@ graphics_info_t::setRotationCentre(coot::Cartesian new_centre, bool force_jump) 
          identification_pulse_centre = cartesian_to_glm(current_centre);
          gtk_gl_area_attach_buffers(GTK_GL_AREA(glareas[0]));
          bool broken_line_mode = true;
-         lines_mesh_for_identification_pulse.setup_pulse(broken_line_mode);
+         lines_mesh_for_identification_pulse.setup_green_pulse(broken_line_mode);
          gtk_widget_add_tick_callback(glareas[0], identification_pulse_func, user_data, NULL);
 
       }
@@ -6885,7 +6885,7 @@ int
 graphics_info_t::get_n_pressed_for_leftquote_tap(std::chrono::time_point<std::chrono::high_resolution_clock> tp) {
 
    unsigned int s = leftquote_press_times.size();
-   unsigned int r = s % 4 + 1;
+   unsigned int r = s % 5 + 1;
    if (s != 0) {
       auto tpl = leftquote_press_times.back();
       auto d10 = std::chrono::duration_cast<std::chrono::milliseconds>(tp - tpl).count();

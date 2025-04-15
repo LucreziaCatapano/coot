@@ -38,7 +38,7 @@ if COND_LIBCOOTAPI_ONLY
    SUBDIRS = auxil scheme python pdb-templates macros compat utils protein_db mini-mol geometry  \
         lidia-core coot-utils angles ccp4mg-utils db-main analysis cootaneer ideal ligand coords \
 	density-contour skeleton  high-res build MoleculesToTriangles pli \
-	python-tests cootilus fonts pyrogen data \
+	python-tests cootilus fonts pyrogen data monomers \
 	man rama-data glTF pixmaps textures api
 else
    # rcrane is not included yet.
@@ -46,7 +46,7 @@ else
         lidia-core coot-utils angles ccp4mg-utils db-main analysis cootaneer ideal ligand coords \
 	density-contour skeleton high-res build MoleculesToTriangles pli greg-tests \
 	python-tests cootilus fonts pyrogen data \
-	man rama-data doc glTF pixmaps textures sounds api layla validation-graphs src ui
+	man rama-data doc glTF pixmaps textures sounds reference-structures api layla validation-graphs src ui
 endif
 endif
 

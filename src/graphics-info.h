@@ -958,6 +958,9 @@ class graphics_info_t {
 
    std::string adjust_refinement_residue_name(const std::string &resname) const;
    static void info_dialog_missing_refinement_residues(const std::vector<std::string> &res_names);
+   // replaced by
+   static void show_missing_refinement_residues_dialog(const std::vector<std::string> &res_names);
+
    void info_dialog_alignment(coot::chain_mutation_info_container_t mutation_info) const;
    void info_dialog_refinement_non_matching_atoms(std::vector<std::pair<mmdb::Residue *, std::vector<std::string> > > nma);
 
@@ -1977,8 +1980,8 @@ public:
    void stop_refinement_internal();
 
    void show_refine_params_dialog(); // not used for map selection now.
-   void show_select_map_dialog();
-   void show_select_map_dialog_gtkbuilder();
+   void show_select_map_frame(); // it's an overlay now
+   void show_select_map_frame_gtkbuilder();
    void show_select_map_dialog_old_style();
 
    // Map and molecule display.  We need this so that we can look up
@@ -3520,6 +3523,7 @@ public:
    void move_single_atom_of_moving_atoms(int screenx, int screeny);
    // if control_is_pressed is true, then we only want to move the dragged atom
    void move_atom_pull_target_position(double screenx, double screeny, bool control_is_pressed);
+   void move_dragged_anchored_atom(double screen_x, double screen_y);
    void add_target_position_restraint_for_intermediate_atom(const coot::atom_spec_t &spec,
 							    const clipper::Coord_orth &target_pos);
    void add_target_position_restraints_for_intermediate_atoms(const std::vector<std::pair<coot::atom_spec_t, clipper::Coord_orth> > &atom_spec_position_vec); // refines after added
@@ -3532,6 +3536,8 @@ public:
 
    static void drag_intermediate_atom(const coot::atom_spec_t &atom_spec, const clipper::Coord_orth &pt);
    static void mark_atom_as_fixed(int imol, const coot::atom_spec_t &atom_spec, bool state);
+   // this used to be called mark_atom_as_fixed() - I don't know why one would want to use it.
+   static void while_moving_atoms_active_mark_atom_as_fixed(int imol, const coot::atom_spec_t &atom_spec, bool state);
    // static std::vector<mmdb::Atom *> fixed_intermediate_atoms;
    static bool fixed_atom_for_refinement_p(mmdb::Atom *); // examines the imol_moving_atoms molecule
                                                           // for correspondence
@@ -4271,7 +4277,8 @@ public:
    static float probe_dots_on_chis_molprobity_radius;
 
    // a text string and a handle (so that it can be removed)
-   static std::vector<coot::old_generic_text_object_t> *generic_texts_p;
+   static std::vector<coot::generic_text_object_t> generic_texts;
+   // not that draw_generic_texts() is part of draw_molecule_atom_labels().
 
    // -- move molecule here
    static int move_molecule_here_molecule_number;
@@ -5090,6 +5097,9 @@ string   static std::string sessionid;
    static gboolean invalid_residue_pulse_function(GtkWidget *widget,  // return the continue-status
                                                   GdkFrameClock *frame_clock,
                                                   gpointer data);
+   static gboolean generic_pulse_function(GtkWidget *widget,
+                                          GdkFrameClock *frame_clock,
+                                          gpointer data);
    static gboolean wait_for_hooray_refinement_tick_func(GtkWidget *widget,
                                                         GdkFrameClock *frame_clock,
                                                         gpointer data);

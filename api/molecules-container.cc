@@ -2944,12 +2944,11 @@ int
 molecules_container_t::refine_residues_using_atom_cid(int imol, const std::string &cid, const std::string &mode, int n_cycles) {
 
    auto debug_selected_residues = [cid] (const std::vector<mmdb::Residue *> &rv) {
-      std::cout << "refine_residues_using_atom_cid(): selected these " << rv.size() << " residues"
-         " from cid: \"" << cid << "\"" << std::endl;
+      std::cout << "debug:: selection: refine_residues_using_atom_cid(): selected these " << rv.size() << " residues"
+                << " from cid: \"" << cid << "\"" << std::endl;
       std::vector<mmdb::Residue *>::const_iterator it;
-      for (it=rv.begin(); it!=rv.end(); ++it) {
+      for (it=rv.begin(); it!=rv.end(); ++it)
          std::cout << "   " << coot::residue_spec_t(*it) << std::endl;
-      }
    };
 
    if (false)
@@ -5691,7 +5690,33 @@ void molecules_container_t::export_chemical_features_as_gltf(int imol, const std
 }
 
 
+//! set the gltf PBR roughness factor
+//!
+//! @param imol is the model molecule index
+//! @param roughness_factor is the factor for the roughness (0.0 to 1.0)
+void
+molecules_container_t::set_gltf_pbr_roughness_factor(int imol, float roughness_factor) {
 
+   if (is_valid_model_molecule(imol)) {
+      molecules[imol].gltf_pbr_roughness = roughness_factor;
+   } else {
+      std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
+   }
+}
+
+//! set the gltf PBR metalicity factor
+//!
+//! @param imol is the model molecule index
+//! @param metalicity is the factor for the roughness (0.0 to 1.0)
+void
+molecules_container_t::set_gltf_pbr_metalicity_factor(int imol, float metalicity) {
+
+   if (is_valid_model_molecule(imol)) {
+      molecules[imol].gltf_pbr_metalicity = metalicity;
+   } else {
+      std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
+   }
+}
 
 //! get density at position
 //! @return density value

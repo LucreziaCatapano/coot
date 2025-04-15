@@ -490,7 +490,7 @@ void delete_checked_waters_baddies(int imol, float b_factor_lim, float map_sigma
    if (is_valid_model_molecule(imol)) {
       if (!is_valid_map_molecule(imol_for_map)) {
 	 std::cout << "WARNING:: Not a valid map for density testing " << imol_for_map << std::endl;
-	 show_select_map_dialog();
+	 show_select_map_frame();
       } else {
 	 std::vector<coot::atom_spec_t> baddies =
 	    graphics_info_t::molecules[imol].find_water_baddies(b_factor_lim,
@@ -1020,6 +1020,7 @@ PyObject *map_peaks_py(int imol_map, float n_sigma) {
       int do_positive_levels_flag = 1;
       int also_negative_levels_flag = 0;
       coot::peak_search ps(xmap);
+      ps.set_max_closeness(0.0f);
       std::vector<std::pair<clipper::Coord_orth, float> > peaks =
 	 ps.get_peaks(xmap, n_sigma, do_positive_levels_flag, also_negative_levels_flag);
       r = PyList_New(peaks.size());
@@ -1104,6 +1105,7 @@ SCM map_peaks_scm(int imol_map, float n_sigma) {
       int do_positive_levels_flag = 1;
       int also_negative_levels_flag = 0;
       coot::peak_search ps(xmap);
+      ps.set_max_closeness(0.0f);
       std::vector<std::pair<clipper::Coord_orth, float> > peaks =
 	 ps.get_peaks(xmap, n_sigma, do_positive_levels_flag, also_negative_levels_flag);
       for (unsigned int i=0; i<peaks.size(); i++) {

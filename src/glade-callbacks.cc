@@ -60,11 +60,21 @@
 #include "gtkglarea-rama-plot.hh"
 #include "cc-interface-scripting.hh"
 
+void get_monomer_dictionary_in_subthread(const std::string &comp_id);
+
+
 // this from callbacks.h (which I don't want to include here)
 typedef const char entry_char_type;
 
 extern "C" G_MODULE_EXPORT
 gboolean on_about_dialog_close_request(GtkAboutDialog *dialog, gpointer user_data) {
+   gtk_widget_set_visible(GTK_WIDGET(dialog), FALSE);
+   return TRUE; // Prevent the default close behavior (destruction)
+}
+
+extern "C" G_MODULE_EXPORT
+gboolean
+on_select_fitting_map_dialog_close_request(GtkAboutDialog *dialog, gpointer user_data) {
    gtk_widget_set_visible(GTK_WIDGET(dialog), FALSE);
    return TRUE; // Prevent the default close behavior (destruction)
 }
@@ -786,15 +796,11 @@ void
 on_find_ligand_ok_button_clicked       (GtkButton       *button,
                                                             gpointer         user_data) {
 
-   int n_ligands = execute_get_mols_ligand_search(GTK_WIDGET(button));
-			                    	/* which then runs execute_ligand_search */
-   if (n_ligands > 0) {
-      GtkWidget *window = widget_from_builder("find_ligand_dialog");
-      // free_ligand_search_user_data(GTK_WIDGET(button)); // not if not destroyed? Needs checking.
-      gtk_widget_set_visible(window, FALSE);
-   } else {
-      info_dialog("WARNING:: No ligands were selected");
-   }
+   // execute_get_mols_ligand_search() no longer returns the number of ligands
+   execute_get_mols_ligand_search(GTK_WIDGET(button)); /* which then runs execute_ligand_search */
+   GtkWidget *window = widget_from_builder("find_ligand_dialog");
+   // free_ligand_search_user_data(GTK_WIDGET(button)); // not if not destroyed? Needs checking.
+   gtk_widget_set_visible(window, FALSE);
 }
 
 
@@ -2547,10 +2553,19 @@ on_workflow_cancel_button_clicked      (GtkButton       *button,
 
 extern "C" G_MODULE_EXPORT
 void
-on_select_map_for_fitting_button_clicked(GtkButton       *button,
+on_select_map_for_fitting_cancel_button_clicked(GtkButton       *button,  // OK button
+                                                gpointer         user_data) {
+
+   GtkWidget *frame = widget_from_builder( "select_map_for_fitting_frame");
+   gtk_widget_set_visible(frame, FALSE);
+}
+
+extern "C" G_MODULE_EXPORT
+void
+on_select_map_for_fitting_button_clicked(GtkButton       *button,  // OK button
                                          gpointer         user_data) {
 
-   GtkWidget *dialog       = widget_from_builder( "select_fitting_map_dialog");
+   GtkWidget *frame       = widget_from_builder( "select_map_for_fitting_frame");
    GtkWidget *weight_entry = widget_from_builder("select_fitting_map_dialog_weight_entry");
 
    if (weight_entry) {
@@ -2559,7 +2574,7 @@ on_select_map_for_fitting_button_clicked(GtkButton       *button,
       graphics_info_t g;
       g.geometry_vs_map_weight = f;
    }
-   gtk_widget_set_visible(dialog, FALSE);
+   gtk_widget_set_visible(frame, FALSE);
 
 }
 
@@ -2571,7 +2586,7 @@ on_model_refine_dialog_map_select_button_clicked
                                         (GtkButton       *button,
                                         gpointer         user_data)
 {
-   show_select_map_dialog();
+   show_select_map_frame();
 }
 
 
@@ -3282,8 +3297,7 @@ on_column_labels_use_resolution_limits_checkbutton_toggled
                                         (GtkToggleButton *togglebutton,
                                         gpointer         user_data)
 {
-  GtkWidget *frame = widget_from_builder(
-				   "resolution_limits_hbox");
+  GtkWidget *frame = widget_from_builder("resolution_limits_hbox");
   if (gtk_toggle_button_get_active(togglebutton))
      gtk_widget_set_sensitive(frame, TRUE);
   else
@@ -3302,6 +3316,14 @@ on_merge_molecules_ok_button_clicked(GtkButton       *button,
    do_merge_molecules(w);
    gtk_widget_set_visible(w, FALSE);
 
+}
+
+
+extern "C" G_MODULE_EXPORT
+gboolean
+on_merge_molecules_dialog_close_request(GtkAboutDialog *dialog, gpointer user_data) {
+   gtk_widget_set_visible(GTK_WIDGET(dialog), FALSE);
+   return TRUE; // Prevent the default close behavior (destruction)
 }
 
 
@@ -4396,7 +4418,7 @@ on_mutate_sequence_do_autofit_checkbutton_toggled(GtkCheckButton *checkbutton,
       imol_map = imol_refinement_map();
       if (imol_map == -1) {
 	 gtk_check_button_set_active(checkbutton, FALSE);
-	 show_select_map_dialog();
+	 show_select_map_frame();
 	 info_dialog("A map has not yet been assigned for Refinement/Fitting");
       }
    }
@@ -6882,6 +6904,38 @@ on_generic_validation_box_of_buttons_close_button_clicked(GtkButton       *butto
 
 extern "C" G_MODULE_EXPORT
 void
+on_download_monomers_cancel_button_clicked(GtkButton       *button,
+					   gpointer         user_data) {
+
+   GtkWidget *dialog = widget_from_builder("download_monomers_dialog");
+   gtk_widget_set_visible(dialog, FALSE);
+
+}
+
+extern "C" G_MODULE_EXPORT
+void
+on_download_monomers_ok_button_clicked(GtkButton       *button,
+				       gpointer         user_data) {
+
+   GtkWidget *vbox = widget_from_builder("download_monomers_dialog_vbox_inner");
+   if (vbox) {
+      GtkWidget *item_widget = gtk_widget_get_first_child(vbox);
+      while (item_widget) {
+	 gchar *comp_id = static_cast<gchar *>(g_object_get_data(G_OBJECT(item_widget), "comp_id"));
+	 if (comp_id) {
+	    get_monomer_dictionary_in_subthread(comp_id);
+	 }
+	 item_widget = gtk_widget_get_next_sibling(item_widget);
+      };
+
+   }
+
+   GtkWidget *dialog = widget_from_builder("download_monomers_dialog");
+   gtk_widget_set_visible(dialog, FALSE);
+}
+
+extern "C" G_MODULE_EXPORT
+void
 on_button_clicked(GtkButton       *button,
                   gpointer         user_data) {
 
@@ -6889,5 +6943,4 @@ on_button_clicked(GtkButton       *button,
    gtk_widget_set_visible(dialog, FALSE);
 
 }
-
 

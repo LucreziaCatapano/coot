@@ -54,7 +54,7 @@ endif(WIN32)
 
 set(coot_src ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_definitions(-DANALYSE_REFINEMENT_TIMING -DPACKAGE_VERSION="1.1.x-pre"
+add_definitions(-DANALYSE_REFINEMENT_TIMING -DPACKAGE_VERSION="1.1.15"
   -DHAVE_CXX_THREAD -DHAVE_SSMLIB -DHAVE_BOOST -DUSE_LIBPNG=1 -DCLIPPER_HAS_TOP8000 -DUSE_GEMMI -DHAVE_BOOST_THREAD -DHAVE_GSL
   -DPKGDATADIR="${CMAKE_INSTALL_PREFIX}/share/coot" -DXDATADIR="${CMAKE_INSTALL_PREFIX}/share")
 
@@ -466,6 +466,7 @@ nanobind_add_stub(coot_headless_api_ext_stub
   OUTPUT coot_headless_api.pyi
   PYTHON_PATH $<TARGET_FILE_DIR:coot_headless_api>
   DEPENDS coot_headless_api
+  MARKER_FILE py.typed
 )
 
 # use MMDB2_INCLUDE_DIR to find the RDKIT for now.
@@ -534,7 +535,7 @@ target_include_directories(test-molecules-container PRIVATE ${coot_src} ${coot_s
 
 target_link_libraries(test-molecules-container PUBLIC cootapi ${SSM_LIBRARY} ${CLIPPER-MINIMOL_LIBRARY} ${CLIPPER-MMDB_LIBRARY} ${CLIPPER-CIF_LIBRARY} ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${CLIPPER-CONTRIB_LIBRARY} ${FFTW2_LIBRARY} ${RFFTW2_LIBRARY} ${MMDB2_LIBRARY} ${CCP4C_LIBRARY} ${ZLIB_LIBRARIES} ${GSL_LIBRARIES} ${RDKit_libs_for_libcootapi} ${PNG_LIBRARY} gemmi::gemmi_cpp ${libdwarf} ${libelf} Threads::Threads)
 
-target_include_directories(mmcif-tests PRIVATE ${CLIPPER-MMDB_INCLUDE_DIR})
+target_include_directories(mmcif-tests PRIVATE ${MMDB2_INCLUDE_DIR} ${CLIPPER-MMDB_INCLUDE_DIR})
 
 target_link_libraries(mmcif-tests PUBLIC ${MMDB2_LIBRARY})
 

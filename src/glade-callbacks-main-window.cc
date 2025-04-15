@@ -78,7 +78,7 @@ void
 on_model_toolbar_select_map_button_clicked(G_GNUC_UNUSED GtkButton       *button,
                                            G_GNUC_UNUSED gpointer         user_data) {
 
-   show_select_map_dialog();
+   show_select_map_frame();
 }
 
 // <signal name="toggled" handler="on_model_toolbar_range_define_togglebutton_toggled" swapped="no"/>
@@ -723,11 +723,10 @@ on_smiles_to_simple_3d_ok_button_clicked(GtkButton       *button,
 
 extern "C" G_MODULE_EXPORT
 void
-on_diff_map_peaks_close_button_clicked
-                                        (GtkButton       *button,
-                                        gpointer         user_data)
-{
-   GtkWidget *vbox = widget_from_builder("dialog-vbox78");
+on_diff_map_peaks_close_button_clicked(GtkButton       *button,
+                                       gpointer         user_data) {
+
+   GtkWidget *vbox = widget_from_builder("dialog-vbox78"); // change this one day.
    clear_diff_map_peaks();
    gtk_widget_set_visible(vbox, FALSE);
    graphics_info_t::hide_vertical_validation_frame_if_appropriate();
