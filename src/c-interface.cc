@@ -131,6 +131,9 @@
 
 #include "validation-graphs/sequence-view-widget.hh"
 
+#include "utils/logging.hh"
+extern logging logger;
+
 // This is (already) in git-revision-count.cc
 //
 int svn_revision() {
@@ -817,7 +820,8 @@ int handle_read_draw_molecule_with_recentre(const std::string &filename,
 							  bw, bonds_box_type, true);
 
       if (istat == 1) {
-	 std::cout << "Molecule " << imol << " read successfully\n";
+	 // std::cout << "Molecule " << imol << " read successfully\n";
+         logger.log(log_t::INFO, "Molecule ", imol, " read successfully");
 
 	 // we do this somewhat awkward in and out thing with the
 	 // molecule, because I don't want to (or am not able to) pass a
@@ -3223,8 +3227,7 @@ get_show_aniso() {
 
 void
 set_show_aniso(int state) {
-   graphics_info_t::log.log(logging::WARNING, logging::function_name_t(__FUNCTION__),
-                            "don't use this");
+   logger.log(log_t::WARNING, logging::function_name_t(__FUNCTION__), "don't use this");
 }
 
 /*! \brief set show aniso atoms */
@@ -3687,7 +3690,8 @@ int n_dots_sets(int imol) {
    if ((imol >= 0) && (imol < graphics_info_t::n_molecules())) {
       r = graphics_info_t::molecules[imol].n_dots_sets();
    } else {
-      std::cout << "WARNING:: Bad molecule number: " << imol << std::endl;
+      // std::cout << "WARNING:: Bad molecule number: " << imol << std::endl;
+      logger.log(log_t::WARNING, "Bad molecule number:", imol);
    }
    return r;
 }
@@ -4059,7 +4063,7 @@ float median_temperature_factor(int imol) {
                                                      low_cut_flag,
                                                      high_cut_flag);
    } else {
-      std::cout << "WARNING:: no such molecule as " << imol << "\n";
+      logger.log(log_t::WARNING, "No such molecule number:", imol);
    }
    return median;
 }
@@ -4080,10 +4084,11 @@ float average_temperature_factor(int imol) {
 						     low_cut_flag,
 						     high_cut_flag);
       } else {
-	 std::cout << "WARNING:: molecule " << imol << " has no model\n";
+	 // std::cout << "WARNING:: molecule " << imol << " has no model\n";
+         logger.log(log_t::WARNING, "Molecule:", imol, "has no model");
       }
    } else {
-      std::cout << "WARNING:: no such molecule as " << imol << "\n";
+      logger.log(log_t::WARNING, "No such molecule as:", imol);
    }
    return av;
 }
@@ -4103,7 +4108,8 @@ float standard_deviation_temperature_factor(int imol) {
 							     low_cut_flag,
 							     high_cut_flag);
    } else {
-      std::cout << "WARNING:: molecule " << imol << " is not a valid model\n";
+      // std::cout << "WARNING:: molecule " << imol << " is not a valid model\n";
+      logger.log(log_t::WARNING, "Molecule:", imol, "is not a valid model");
    }
    return av;
 }

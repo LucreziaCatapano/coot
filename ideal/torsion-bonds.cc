@@ -35,6 +35,9 @@
 
 #include "torsion-bonds.hh"
 
+#include "utils/logging.hh"
+extern logging logger;
+
 
 // this can throw an exception
 // 
@@ -202,8 +205,6 @@ coot::torsionable_quads(int imol, mmdb::Manager *mol, mmdb::PPAtom atom_selectio
 			int n_selected_atoms,
 			protein_geometry *geom_p) {
 
-   std::cout << "debug:: in torsionable_quads() with n_selected_atoms " << n_selected_atoms << std::endl;
-
    bool pyranose_ring_torsion_flag = false; // no thanks
    std::vector<torsion_atom_quad> quads;
    std::vector<mmdb::Residue *> residues;
@@ -238,12 +239,16 @@ coot::torsionable_link_quads(int imol,
 			     std::vector<mmdb::Residue *> residues_in,
 			     mmdb::Manager *mol, protein_geometry *geom_p) {
 
-   if (true) {
-      std::cout << "torsionable_link_quads called with residues in size "
+   if (false) {
+      std::cout << "DEBUG:: torsionable_link_quads called with residues in size "
                 << residues_in.size() << std::endl;
       for (unsigned int i=0; i<residues_in.size(); i++) {
-         std::cout << "   " << coot::residue_spec_t(residues_in[i]) << std::endl;
+         std::cout << "DEBUG::   " << coot::residue_spec_t(residues_in[i]) << std::endl;
       }
+      logger.log(log_t::DEBUG, logging::ltw("torsionable_link_quads called with residues in size"),
+                 logging::ltw(residues_in.size()));
+      for (unsigned int i=0; i<residues_in.size(); i++)
+         logger.log(log_t::DEBUG, residue_spec_t(residues_in[i]).format());
    }
 
    std::vector<torsion_atom_quad> quads;
@@ -295,7 +300,8 @@ coot::torsionable_link_quads(int imol,
 	       const dict_link_torsion_restraint_t &rest = link.link_torsion_restraint[il];
 	       if (rest.is_pyranose_ring_torsion()) {
 		  // pass
-		  std::cout << "   link # " << il << " is pyranose ring torsion # PASS" << std::endl;
+		  // std::cout << "   link # " << il << " is pyranose ring torsion # PASS" << std::endl;
+                  logger.log(log_t::INFO, "   link #", il, "is pyranose ring torsion # PASS");
 
 		  if (false) { // debug
 		     mmdb::Residue *r_1 = bpc[i].res_1;
@@ -314,10 +320,16 @@ coot::torsionable_link_quads(int imol,
 		     mmdb::Atom *link_atom_2 = r_2->GetAtom(rest.atom_id_2_4c().c_str());
 		     mmdb::Atom *link_atom_3 = r_3->GetAtom(rest.atom_id_3_4c().c_str());
 		     mmdb::Atom *link_atom_4 = r_4->GetAtom(rest.atom_id_4_4c().c_str());
-		     std::cout << "   link # " << il << " has link_atoms: "
-			       << atom_spec_t(link_atom_1) << " " << atom_spec_t(link_atom_2) << " "
-			       << atom_spec_t(link_atom_3) << " " << atom_spec_t(link_atom_4) << " "
-			       << std::endl;
+
+		     // std::cout << "   link # " << il << " has link_atoms: "
+		     //           << atom_spec_t(link_atom_1) << " " << atom_spec_t(link_atom_2) << " "
+		     //           << atom_spec_t(link_atom_3) << " " << atom_spec_t(link_atom_4) << " "
+		     //           << std::endl;
+                     logger.log(log_t::INFO, {"   link #", il, "has link_atoms:",
+                                              atom_spec_t(link_atom_1).format(),
+                                              atom_spec_t(link_atom_2).format(),
+                                              atom_spec_t(link_atom_3).format(),
+                                              atom_spec_t(link_atom_4).format()});
 
 		  }
 	       } else {
@@ -338,15 +350,27 @@ coot::torsionable_link_quads(int imol,
 		  mmdb::Atom *link_atom_3 = r_3->GetAtom(rest.atom_id_3_4c().c_str());
 		  mmdb::Atom *link_atom_4 = r_4->GetAtom(rest.atom_id_4_4c().c_str());
 
-		  std::cout << "   link # " << il << " has residues    "
-			    << residue_spec_t(r_1) << "         " << residue_spec_t(r_2)
-			    << "         "
-			    << residue_spec_t(r_3) << "         " << residue_spec_t(r_4)
-			    << std::endl;
-		  std::cout << "   link # " << il << " has link_atoms: "
-			    << atom_spec_t(link_atom_1) << " " << atom_spec_t(link_atom_2) << " "
-			    << atom_spec_t(link_atom_3) << " " << atom_spec_t(link_atom_4) << " "
-			    << std::endl;
+		  // std::cout << "   link # " << il << " has residues    "
+		  //           << residue_spec_t(r_1) << "         " << residue_spec_t(r_2)
+		  //           << "         "
+		  //           << residue_spec_t(r_3) << "         " << residue_spec_t(r_4)
+		  //           << std::endl;
+		  // std::cout << "   link # " << il << " has link_atoms: "
+		  //           << atom_spec_t(link_atom_1) << " " << atom_spec_t(link_atom_2) << " "
+		  //           << atom_spec_t(link_atom_3) << " " << atom_spec_t(link_atom_4) << " "
+		  //           << std::endl;
+
+                  logger.log(log_t::INFO, {"   link #", il, "has residues",
+                                           residue_spec_t(r_1).format(),
+                                           residue_spec_t(r_2).format(),
+                                           residue_spec_t(r_3).format(),
+                                           residue_spec_t(r_4).format()});
+                  logger.log(log_t::INFO, {"   link #", il, "has link_atoms:",
+                                           atom_spec_t(link_atom_1).format(),
+                                           atom_spec_t(link_atom_2).format(),
+                                           atom_spec_t(link_atom_3).format(),
+                                           atom_spec_t(link_atom_4).format()});
+
 		  if (link_atom_1 && link_atom_2 && link_atom_3 && link_atom_4) {
 		     torsion_atom_quad q(link_atom_1, link_atom_2, link_atom_3, link_atom_4,
 					 rest.angle(),
@@ -364,8 +388,8 @@ coot::torsionable_link_quads(int imol,
 
 	    // bleugh... OK, no torsion restraints.
 	    // So use a bond restaint to make one torsion (around the link bond).
-	    // 
-	    for (unsigned int ib=0; ib<link.link_bond_restraint.size(); ib++) { 
+	    //
+	    for (unsigned int ib=0; ib<link.link_bond_restraint.size(); ib++) {
 	       mmdb::Atom *link_atom_1 = bpc[i].res_1->GetAtom(link.link_bond_restraint[ib].atom_id_1_4c().c_str());
 	       mmdb::Atom *link_atom_2 = bpc[i].res_2->GetAtom(link.link_bond_restraint[ib].atom_id_2_4c().c_str());
 	       if (link_atom_1 && link_atom_2) {
@@ -476,7 +500,7 @@ coot::multi_residue_torsion_fit_map(int imol,
 	 // FIXME for future, calculate link_angle_atom_triples, using something analoguous to
 	 // torsionable_link_quads()
 
-	 if (true) // debug
+	 if (false) // debug
 	    for (unsigned int iquad=0; iquad<quads.size(); iquad++)
 	       std::cout << "DEBUG multi-residue-torsion-fit-map: tosion quads:  "
                          << iquad << " "
@@ -521,7 +545,7 @@ coot::multi_residue_torsion_fit_map(int imol,
 	       small_torsion_changes = true;
 	    }
 
-	    if (true)
+	    if (false)
 	       std::cout << "Round " << itrial << " of " << n_trials << " for " << n_quads << " quads "
 			 << std::endl;
 
@@ -554,7 +578,18 @@ coot::multi_residue_torsion_fit_map(int imol,
 	       std::cout << std::endl;
 	    }
 
+            if (false) {
+               std::string file_name = "A-trial-" + std::to_string(itrial) + ".pdb";
+               mol->WritePDBASCII(file_name.c_str());
+            }
+
 	    tree.set_dihedral_multi(torsion_quads);
+
+            if (false) {
+               std::string file_name = "B-trial-" + std::to_string(itrial) + ".pdb";
+               mol->WritePDBASCII(file_name.c_str());
+            }
+
 	    // FIXME for futures, also include link_angle_atom_triples (for excluding of bumps)
 	    double self_clash_score = get_self_clash_score(mol, atom_selection, n_selected_atoms, quads);
 
@@ -581,7 +616,7 @@ coot::multi_residue_torsion_fit_map(int imol,
 	       double this_score = util::z_weighted_density_score_new(atoms, xmap);
 
 	       // debugging of scores
-	       if (true) {
+	       if (false) {
 		  std::cout << "debug trial " << itrial << " fit-score: " << this_score
 			    << " self-clash-score " << self_clash_score
 			    << " for quads ";
@@ -591,7 +626,12 @@ coot::multi_residue_torsion_fit_map(int imol,
 	       }
 
 	       if (this_score > best_score) {
-                  std::cout << ".... improved!" << std::endl;
+                  // std::cout << "Round " << itrial << " improved! was " << best_score
+                  // << " now " << this_score << std::endl;
+                  logger.log(log_t::DEBUG, {std::string("Round"), itrial,
+                                            std::string("improvement - was"), best_score,
+                                            std::string("now"), this_score});
+                  // util::debug_z_weighted_density_score_new(atoms,xmap);
 		  // save best torsion angles
 		  best_score = this_score;
 		  for (int iquad=0; iquad<n_quads; iquad++)
@@ -604,18 +644,15 @@ coot::multi_residue_torsion_fit_map(int imol,
 		  // set the b-factor of the atoms to the score
 		  int imod = 1;
 		  mmdb::Model *model_p = mol->GetModel(imod);
-		  mmdb::Chain *chain_p;
 		  int n_chains = model_p->GetNumberOfChains();
 		  for (int ichain=0; ichain<n_chains; ichain++) {
-		     chain_p = model_p->GetChain(ichain);
+                     mmdb::Chain *chain_p = model_p->GetChain(ichain);
 		     int nres = chain_p->GetNumberOfResidues();
-		     mmdb::Residue *residue_p;
-		     mmdb::Atom *at;
 		     for (int ires=0; ires<nres; ires++) {
-			residue_p = chain_p->GetResidue(ires);
+                        mmdb::Residue *residue_p = chain_p->GetResidue(ires);
 			int n_atoms = residue_p->GetNumberOfAtoms();
 			for (int iat=0; iat<n_atoms; iat++) {
-			   at = residue_p->GetAtom(iat);
+                           mmdb::Atom *at = residue_p->GetAtom(iat);
 			   at->tempFactor = this_score * 0.4;
 			   at->tempFactor = self_clash_score;
 			}
@@ -626,7 +663,13 @@ coot::multi_residue_torsion_fit_map(int imol,
 	       }
 	    }
 	 }
-	 tree.set_dihedral_multi(best_tree_dihedral_quads);
+         if (!best_tree_dihedral_quads.empty()) {
+            // std::string fn = "pre-set-dihedrals-for-best.pdb";
+            // mol->WritePDBASCII(fn.c_str());
+            tree.set_dihedral_multi(best_tree_dihedral_quads);
+            // fn = "post-set-dihedrals-for-best.pdb";
+            //mol->WritePDBASCII(fn.c_str());
+         }
 	 mol->DeleteSelection(selhnd);
       }
    }
@@ -654,10 +697,10 @@ coot::get_rand_angle(double current_angle,
       r += 5.0 * minus_one_to_one;
    } else {
       r += 30 * minus_one_to_one * angle_scale_factor;
-   } 
+   }
 
    // allow gauche+/gauche-/trans
-   if (allow_conformer_switch) { 
+   if (allow_conformer_switch) {
       double rn = float(util::random())/float(RAND_MAX);
       double tf = 1 - trial_factor; // tf goes from 1 (start) to 0 (end)
       if (rn < (0.02 + 0.25 * tf)) {

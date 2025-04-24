@@ -41,6 +41,9 @@
 #include "coords/Bond_lines.h"
 #include "coords/mmdb.hh"
 
+#include "utils/logging.hh"
+extern logging logger;
+
 // statics
 std::atomic<bool> molecules_container_t::restraints_lock(false);
 std::atomic<bool> molecules_container_t::on_going_updating_map_lock(false);
@@ -102,6 +105,21 @@ molecules_container_t::is_valid_map_molecule(int imol) const {
    }
    return status;
 }
+
+//! Control the logging
+//!
+//! @param level is the logging level
+void
+molecules_container_t::set_logging_level(const std::string &level) {
+
+   logging::output_t ot = logging::output_t::TERMINAL;
+   if (level == "LOW")       ot = logging::output_t::INTERNAL;
+   if (level == "HIGH")      ot = logging::output_t::TERMINAL;
+   if (level == "DEBUGGING") ot = logging::output_t::TERMINAL_WITH_DEBUGGING;
+   logger.set_output_type(ot);
+}
+
+
 
 //! @return is this a difference map?
 bool
@@ -4190,6 +4208,31 @@ molecules_container_t::fill_partial_residues(int imol) {
 
 }
 
+//! Add N-linked glycosylation
+//!
+//! @param imol_model is the model molecule index
+//! @param imol_map is the map molecule index
+//! @param glycosylation_name is the type of glycosylation, one of:
+//!       "NAG-NAG-BMA" or "high-mannose" or "hybrid" or "mammalian-biantennary" or "plant-biantennary"
+//! @param asn_chain_id is the chain-id of the ASN to which the carbohydrate is to be added
+//! @param asn_res_no is the residue number of the ASN to which the carbohydrate is to be added
+void
+molecules_container_t::add_named_glyco_tree(int imol_model, int imol_map, const std::string &glycosylation_name,
+                                            const std::string &asn_chain_id, int asn_res_no) {
+
+   int status = 0;
+   if (is_valid_model_molecule(imol_model)) {
+      if (is_valid_map_molecule(imol_map)) {
+         const clipper::Xmap<float> &xmap = molecules.at(imol_map).xmap;
+         molecules[imol_model].add_named_glyco_tree(glycosylation_name, asn_chain_id, asn_res_no, xmap, &geom);
+      } else {
+         std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid map molecule " << imol_map << std::endl;
+      }
+   } else {
+      std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol_model << std::endl;
+   }
+
+}
 
 std::vector<std::string>
 molecules_container_t::get_chains_in_model(int imol) const {
@@ -5697,7 +5740,10 @@ void molecules_container_t::export_chemical_features_as_gltf(int imol, const std
 void
 molecules_container_t::set_gltf_pbr_roughness_factor(int imol, float roughness_factor) {
 
-   if (is_valid_model_molecule(imol)) {
+   bool is_valid = false;
+   if (is_valid_model_molecule(imol)) is_valid =  true;
+   if (is_valid_map_molecule(imol)) is_valid =  true;
+   if (is_valid) {
       molecules[imol].gltf_pbr_roughness = roughness_factor;
    } else {
       std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
@@ -5711,7 +5757,10 @@ molecules_container_t::set_gltf_pbr_roughness_factor(int imol, float roughness_f
 void
 molecules_container_t::set_gltf_pbr_metalicity_factor(int imol, float metalicity) {
 
-   if (is_valid_model_molecule(imol)) {
+   bool is_valid = false;
+   if (is_valid_model_molecule(imol)) is_valid =  true;
+   if (is_valid_map_molecule(imol)) is_valid =  true;
+   if (is_valid) {
       molecules[imol].gltf_pbr_metalicity = metalicity;
    } else {
       std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;

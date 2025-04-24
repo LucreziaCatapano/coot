@@ -41,6 +41,9 @@
 #include "gemmi/mmdb.hpp"
 #endif
 
+#include "utils/logging.hh"
+extern logging logger;
+
 mmdb::Residue *
 atom_selection_container_t::get_next(mmdb::Residue *residue_in) const {
 
@@ -295,9 +298,12 @@ get_atom_selection(std::string pdb_name,
    };
 #endif // USE_GEMMI
 
-   if (true) // too noisy
+   if (false) // too noisy
       std::cout << "DEBUG:: get_atom_selection() with file \"" << pdb_name << "\""
                 << " use_gemmi: " << use_gemmi << std::endl;
+
+   logger.log(log_t::DEBUG, logging::function_name_t(__FUNCTION__),
+              {logging::ltw("with file"), pdb_name, logging::ltw("use_gemmi"), use_gemmi});
 
    mmdb::ERROR_CODE err;
    mmdb::Manager* MMDBManager;
@@ -406,8 +412,9 @@ get_atom_selection(std::string pdb_name,
 #endif
              MMDBManager->PDBCleanup(mmdb::PDBCLEAN_ELEMENT);
 
-             if (verbose_mode)
-                std::cout << "INFO:: Reading coordinate file: " << pdb_name.c_str() << "\n";
+             // std::cout << "INFO:: Reading coordinate file: " << pdb_name.c_str() << "\n";
+             logger.log(log_t::INFO, "Reading coordinate file:", pdb_name);
+
              err = MMDBManager->ReadCoorFile(pdb_name.c_str());
 
              if (err) {
@@ -945,13 +952,17 @@ make_asc(mmdb::Manager *mol, bool transfer_atom_index_flag) {
    asc.mol->GetSelIndex(asc.SelectionHandle, asc.atom_selection, asc.n_selected_atoms);
 
    int uddHnd = mol->RegisterUDInteger(mmdb::UDR_ATOM, "atom index");
+   if (false)
+      std::cout << "debug:: in make_asc(): uddHnd " << uddHnd << " for 'atom index' for mol "
+                << mol << std::endl;
    if (uddHnd < 0) {
       std::cout << "ERROR:: ----------------- atom index registration failed.\n";
    } else {
       // std::cout << "in make_asc() saving UDDAtomIndexHandle " << uddHnd << std::endl;
       asc.UDDAtomIndexHandle = uddHnd;
-      for (int i=0; i<asc.n_selected_atoms; i++)
-         asc.atom_selection[i]->PutUDData(uddHnd,i);
+      for (int i=0; i<asc.n_selected_atoms; i++) {
+         int status = asc.atom_selection[i]->PutUDData(uddHnd,i);
+      }
    }
    asc.read_error_message = "No error";
    asc.read_success = 1;

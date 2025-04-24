@@ -2,17 +2,26 @@
 #include <clipper/core/xmap.h>
 #include "geometry/protein-geometry.hh"
 #include "geometry/residue-and-atom-specs.hh"
+#include "coot-utils/atom-selection-container.hh"
 
 namespace coot {
 
    namespace cho {
+
+      // This is the outer function.
+      // We passe the atom selection container because it gets updated as atoms are added.
+      // If we dont regen_atom_selection() then there are warning messages from create_mmdbmanager_from_residue_specs()
+      //
+      void add_named_glyco_tree(const std::string &glycoylation_name, atom_selection_container_t *asc, int imol,
+                                const clipper::Xmap<float> &xmap, coot::protein_geometry *geom,
+                                std::string asn_chain_id, int asn_res_no);
 
       // (define *add-linked-residue-tree-correlation-cut-off* 0.50)
 
       //! checks to see if residue_pp is well fitting and doesn't clash or symmetry clash
       bool is_well_fitting(mmdb::Residue *residue_p,
                            mmdb::Manager *mol,
-                           clipper::Xmap<float> &xmap,
+                           const clipper::Xmap<float> &xmap,
                            const protein_geometry &geom);
 
       //! \brief return 1 if this residue clashes with the symmetry-related
@@ -28,23 +37,27 @@ namespace coot {
       //! do the thing. This function calls the others.
       //! res-pair is new-link-type and new-res-type
       residue_spec_t
-      add_linked_residue_add_cho_function(mmdb::Manager *mol,
+      add_linked_residue_add_cho_function(atom_selection_container_t *asc,
                                           int imol, // need for dictionaries
                                           const residue_spec_t &parent,
                                           const std::pair<std::string, std::string> &res_pair,
+                                          unsigned int level,
                                           float new_atoms_b_factor,
                                           protein_geometry &geom,
-                                          const clipper::Xmap<float> *xmap); // ca be null
+                                          const clipper::Xmap<float> *xmap, // xmap be null
+                                          float map_weight);
 
       residue_spec_t
-      add_linked_residue(mmdb::Manager *mol,
+      add_linked_residue(atom_selection_container_t *asc,
                          int imol, // because dictionaries
                          const residue_spec_t &parent,
                          const std::pair<std::string, std::string> &new_link_types,
+                         unsigned int level,
                          float new_atoms_b_factor,
                          int mode,
                          protein_geometry &geom,
-                         const clipper::Xmap<float> *xmap);
+                         const clipper::Xmap<float> *xmap,
+                         float map_weight);
 
       // make this a coord utils function? (And others here, perhaps).
       // This adds a header - that is all..

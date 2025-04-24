@@ -212,6 +212,7 @@ add_library(cootapi SHARED
             ${coot_src}/skeleton/dm-utils.cc
             ${coot_src}/skeleton/BuildCas.cc
             ${coot_src}/skeleton/graphical_skel.cc
+            ${coot_src}/ideal/add-linked-cho.cc
             ${coot_src}/ideal/pepflip.cc
             ${coot_src}/ideal/parallel-planes.cc
             ${coot_src}/ideal/simple-restraint.cc
@@ -254,6 +255,7 @@ add_library(cootapi SHARED
             ${coot_src}/utils/setup-syminfo.cc
             ${coot_src}/utils/split-indices.cc
             ${coot_src}/utils/logging.cc
+            ${coot_src}/utils/static-logging.cc
             ${coot_src}/utils/threads.cc
             ${coot_src}/utils/win-compat.cc
             ${coot_src}/db-main/db-strands.cc
@@ -277,7 +279,9 @@ add_library(cootapi SHARED
             ${coot_src}/pli/sdf-interface.cc
             ${coot_src}/pli/specs.cc
             ${coot_src}/coot-utils/coot-align.cc
+            ${coot_src}/coot-utils/dict-link-info.cc
             ${coot_src}/coot-utils/cmtz-interface.cc
+            ${coot_src}/coot-utils/dict-link-info.cc
             ${coot_src}/coot-utils/lidia-core-functions.cc
             ${coot_src}/coot-utils/atom-selection-container.cc
             ${coot_src}/coot-utils/merge-atom-selections.cc
@@ -466,14 +470,14 @@ nanobind_add_stub(coot_headless_api_ext_stub
   OUTPUT coot_headless_api.pyi
   PYTHON_PATH $<TARGET_FILE_DIR:coot_headless_api>
   DEPENDS coot_headless_api
-  MARKER_FILE py.typed
 )
+# MARKER_FILE py.typed
 
 # use MMDB2_INCLUDE_DIR to find the RDKIT for now.
 target_include_directories(cootapi PRIVATE ${coot_src} ${coot_src}/coords ${coot_src}/utils ${coot_src}/ccp4mg-utils ${coot_src}/ccp4mg-utils/util ${coot_src}/ccp4mg-utils/pygl ${MMDB2_INCLUDE_DIR} ${SSM_INCLUDE_DIR} ${CLIPPER-CORE_INCLUDE_DIR} ${CLIPPER-MMDB_INCLUDE_DIR} ${CLIPPER-CCP4_INCLUDE_DIR} ${FFTW2_INCLUDE_DIRS} ${RDKit_INCLUDE_DIRS} ${GLM_INCLUDE_DIRS} ${GSL_INCLUDE_DIRS} ${PNG_PNG_INCLUDE_DIR} ${RDKit_INCLUDE_DIR})
 
 # Charles adds Boost::iostreams Boost::filesystem Boost::system. I don't know why Boost::filesystem was added - I have removed it.
-target_link_libraries(cootapi PRIVATE ${SSM_LIBRARY} ${CLIPPER-MINIMOL_LIBRARY} ${CLIPPER-MMDB_LIBRARY} ${CLIPPER-CIF_LIBRARY} ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${CLIPPER-CONTRIB_LIBRARY} ${FFTW2_LIBRARY} ${RFFTW2_LIBRARY} ${MMDB2_LIBRARY} ${CCP4C_LIBRARY} ${ZLIB_LIBRARIES} ${GSL_LIBRARIES} ${GSL_CBLAS_LIBRARY} ${RDKit_libs_for_libcootapi} ${PNG_LIBRARY} Boost::iostreams Boost::system gemmi::gemmi_cpp ${libdwarf} ${libelf})
+target_link_libraries(cootapi PRIVATE ${SSM_LIBRARY} ${CLIPPER-MINIMOL_LIBRARY} ${CLIPPER-MMDB_LIBRARY} ${CLIPPER-CIF_LIBRARY} ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${CLIPPER-CONTRIB_LIBRARY} ${FFTW2_LIBRARY} ${RFFTW2_LIBRARY} ${MMDB2_LIBRARY} ${CCP4C_LIBRARY} ${ZLIB_LIBRARIES} ${GSL_LIBRARIES} ${GSL_CBLAS_LIBRARY} ${RDKit_libs_for_libcootapi} ${PNG_LIBRARY} Boost::thread Boost::iostreams Boost::system gemmi::gemmi_cpp ${libdwarf} ${libelf})
 
 target_compile_features(cootapi PRIVATE cxx_std_17)
 
@@ -515,15 +519,15 @@ target_compile_features(res-tracer-libcootapi PRIVATE cxx_std_17)
 
 target_link_libraries(coot_headless_api PUBLIC cootapi  ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${MMDB2_LIBRARY} ${libdwarf} ${libelf})
 
-target_include_directories(findligand PRIVATE ${MMDB2_INCLUDE_DIR} ${coot_src})
+target_include_directories(findligand PRIVATE ${MMDB2_INCLUDE_DIR} ${CLIPPER-CORE_INCLUDE_DIR} ${coot_src})
 
-target_include_directories(findwaters PRIVATE ${MMDB2_INCLUDE_DIR} ${coot_src})
+target_include_directories(findwaters PRIVATE ${MMDB2_INCLUDE_DIR} ${CLIPPER-CORE_INCLUDE_DIR} ${coot_src})
 
 target_include_directories(coot-mini-rsr PRIVATE ${MMDB2_INCLUDE_DIR} ${coot_src} ${PNG_INCLUDE_DIR})
 
 target_include_directories(res-tracer-libcootapi PRIVATE ${MMDB2_INCLUDE_DIR} ${coot_src} ${PNG_INCLUDE_DIR})
 
-target_link_libraries(findligand PUBLIC cootapi ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${MMDB2_LIBRARY} Threads::Threads)
+target_link_libraries(findligand PUBLIC cootapi ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${MMDB2_LIBRARY} Boost::thread Threads::Threads)
 
 target_link_libraries(findwaters PUBLIC cootapi ${CLIPPER-CORE_LIBRARY} ${CLIPPER-CCP4_LIBRARY} ${MMDB2_LIBRARY})
 
@@ -549,15 +553,21 @@ set_target_properties(coot_headless_api PROPERTIES INSTALL_RPATH_USE_LINK_PATH T
 
 install(TARGETS cootapi)
 
-install(FILES standard-residues.pdb DESTINATION share/coot)
+install(FILES standard-residues.pdb  DESTINATION share/coot)
 
-install(FILES data/syminfo.lib      DESTINATION share/coot/data)
+install(FILES data/syminfo.lib       DESTINATION share/coot/data)
 
-install(DIRECTORY pdb-templates     DESTINATION share/coot)
+install(DIRECTORY rama-data          DESTINATION share/coot)
 
-install(DIRECTORY rama-data         DESTINATION share/coot)
+install(DIRECTORY data/metal         DESTINATION share/coot/data)
 
-install(DIRECTORY data/metal        DESTINATION share/coot/data)
+install(DIRECTORY data/cho-acedrg    DESTINATION share/coot/data)
+
+install(DIRECTORY data/cho-models    DESTINATION share/coot/data)
+
+install(DIRECTORY data/cho-links     DESTINATION share/coot/data)
+
+install(DIRECTORY data/pdb-templates DESTINATION share/coot/data)
 
 # Thanks Charles B.
 install(TARGETS coot_headless_api DESTINATION ${Python_SITELIB})

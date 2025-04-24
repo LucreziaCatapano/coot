@@ -2122,6 +2122,17 @@ public:
    //! @return 1 on a successful fill, 0 on failure.
    int fill_partial_residues(int imol);
 
+   //! Add N-linked glycosylation
+   //!
+   //! @param imol_model is the model molecule index
+   //! @param imol_map is the map molecule index
+   //! @param glycosylation_name is the type of glycosylation, one of:
+   //!       "NAG-NAG-BMA" or "high-mannose" or "hybrid" or "mammalian-biantennary" or "plant-biantennary"
+   //! @param asn_chain_id is the chain-id of the ASN to which the carbohydrate is to be added
+   //! @param asn_res_no is the residue number of the ASN to which the carbohydrate is to be added
+   void add_named_glyco_tree(int imol_model, int imol_map, const std::string &glycosylation_name,
+                             const std::string &asn_chain_id, int asn_res_no);
+
    //! Flip peptide
    //!
    //! @param imol is the model molecule index
@@ -2512,6 +2523,11 @@ public:
    //!
    //! @param imol is the model molecule index
    void turn_off_when_close_target_position_restraint(int imol);
+
+   //! Control the logging
+   //!
+   //! @param level is the logging level, level is either "LOW" or "HIGH" or "DEBUGGING"
+   void set_logging_level(const std::string &level);
 
    //! Turn on or off rama restraints
    //!

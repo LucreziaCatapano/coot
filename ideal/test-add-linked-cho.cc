@@ -99,113 +99,35 @@ map_from_mtz(std::string mtz_file_name,
    return std::pair<bool, clipper::Xmap<float> > (status, xmap);
 }
 
-#include <memory>
-#include <variant>
 
-struct Node; // Forward declaration
 
-struct Edge {
-   std::shared_ptr<Node> target;
-   std::string link_type;
-};
-
-struct Node {
-   std::string res_type;
-   std::vector<Edge> edges;
-   coot::residue_spec_t spec;
-};
-
-void printNodeInfo(const Node& node) {
-
-   std::cout << "Handle Node with Info: " << node.res_type << " spec: " << node.spec << std::endl;
-}
-
-void printEdgeInfo(const Edge& edge) {
-   std::cout << "  Edge Info: " << edge.link_type << std::endl;
-}
-
-void traverseTree(const Node& node) {
-    printNodeInfo(node);
-    for (const auto& edge : node.edges) {
-        printEdgeInfo(edge);
-        traverseTree(*edge.target); // Recursive traversal
-    }
-}
-
-void build_onto_node(const Node &node,
-                     mmdb::Manager *mol,
-                     int imol,
-                     coot::protein_geometry &geom,
-                     const clipper::Xmap<float> *xmap,
-                     float new_atoms_b_factor) {
-
-   for (const auto& edge : node.edges) {
-      std::pair<std::string, std::string> res_pair(edge.link_type, edge.target->res_type);
-      coot::residue_spec_t new_res_spec =
-         coot::cho::add_linked_residue_add_cho_function(mol, imol, node.spec, res_pair,
-                                                        new_atoms_b_factor, geom, xmap);
-      edge.target->spec = new_res_spec;
-   }
-}
-
-void traverse_tree_and_build(const Node& node,
-                             mmdb::Manager *mol,
-                             int imol,
-                             coot::protein_geometry &geom,
-                             const clipper::Xmap<float> *xmap,
-                             float new_atoms_b_factor) {
-    printNodeInfo(node);
-    build_onto_node(node, mol, imol, geom, xmap, new_atoms_b_factor);
-    for (const auto& edge : node.edges) {
-        printEdgeInfo(edge);
-        traverse_tree_and_build(*edge.target, mol, imol, geom, xmap, new_atoms_b_factor);
-    }
-}
 
 int main(int argc, char **argv) {
 
    int  status = 0;
 
-   auto root   = std::make_shared<Node>();   root->res_type = "ASN";
-   auto child1 = std::make_shared<Node>(); child1->res_type = "NAG";
-   auto child2 = std::make_shared<Node>(); child2->res_type = "NAG";
-   auto child3 = std::make_shared<Node>(); child3->res_type = "BMA";
-   auto child4 = std::make_shared<Node>(); child4->res_type = "MAN";
-   auto child5 = std::make_shared<Node>(); child5->res_type = "MAN";
+   std::string pdb_file_name = "2qc1-sans-cho.pdb";
+   std::string mtz_file_name = "2qc1_map.mtz";
+   std::string asn_chain_id = "B";
+   int asn_res_no = 141;
 
-   root->edges.push_back({child1, "pyr-ASN"});
-   child1->edges.push_back({child2, "BETA1-4"});
-   child2->edges.push_back({child3, "BETA1-4"});
-   child3->edges.push_back({child4, "ALPHA1-6"});
-   child3->edges.push_back({child5, "ALPHA1-3"});
-
-   traverseTree(*root);
-
+   pdb_file_name = "pdb8zwp-sans-cho.pdb";
+   mtz_file_name = "8zwp_map.mtz";
+   asn_res_no = 174;
 
    int imol = 0;
    bool use_gemmi = false;
-   atom_selection_container_t asc = get_atom_selection("2qc1-sans-cho.pdb", use_gemmi);
+   atom_selection_container_t asc = get_atom_selection(pdb_file_name, use_gemmi);
    if (asc.read_success) {
 
       std::pair<bool, clipper::Xmap<float> > xmap_pair =
-         map_from_mtz("2qc1_map.mtz", "FWT", "PHWT", "W", false, false);
+         map_from_mtz(mtz_file_name, "FWT", "PHWT", "W", false, false);
       if (xmap_pair.first) {
          const clipper::Xmap<float> &xmap = xmap_pair.second;
          coot::protein_geometry geom;
          geom.init_standard();
-
-         coot::residue_spec_t parent("B", 141, "");
-         std::pair<std::string, std::string> res_pair("pyr-ASN", "NAG");
-         float new_atoms_b_factor = 30.0;
-
-         // coot::residue_spec_t new_res_spec =
-         // coot::cho::add_linked_residue_add_cho_function(asc.mol, imol,
-         // parent, res_pair,
-         // new_atoms_b_factor,
-         // geom, &xmap);
-
-         root->spec = parent;
-         traverse_tree_and_build(*root, asc.mol, imol, geom, &xmap, new_atoms_b_factor);
+         coot::cho::add_named_glyco_tree("NAG-NAG-BMA", asc.mol, imol, xmap, &geom, asn_chain_id, asn_res_no);
+         asc.mol->WritePDBASCII("done.pdb");
       }
    }
    return status;
