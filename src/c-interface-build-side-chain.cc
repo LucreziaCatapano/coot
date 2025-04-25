@@ -707,7 +707,7 @@ int mutate_by_overlap(int imol, const std::string &chain_id, int res_no, const s
 // return success on residue type match
 // success: 1, failure: 0.
 int
-mutate_internal(int ires_serial, const char *chain_id, int imol, std::string &target_res_type) {
+mutate_internal(int ires_serial, const char *chain_id, int imol, const std::string &target_res_type) {
 
    graphics_info_t g;
    int istate = 0;
@@ -869,7 +869,7 @@ int mutate_and_autofit_residue_range(int imol, const char *chain_id, int start_r
 
 e.g. if nudge_by is 1, then the sidechain of residue 20 is moved up
 onto what is currently residue 21.  The mainchain numbering and atoms is not changed. */
-int nudge_residue_sequence(int imol, char *chain_id, int res_no_range_start,
+int nudge_residue_sequence(int imol, const char *chain_id, int res_no_range_start,
 			   int res_no_range_end,
 			   int nudge_by,
 			   short int nudge_residue_numbers_also) {

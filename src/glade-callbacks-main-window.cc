@@ -728,7 +728,7 @@ void
 on_diff_map_peaks_close_button_clicked(GtkButton       *button,
                                        gpointer         user_data) {
 
-   GtkWidget *vbox = widget_from_builder("dialog-vbox78"); // change this one day.
+   GtkWidget *vbox = widget_from_builder("diff_map_peaks_outer_vbox");
    clear_diff_map_peaks();
    gtk_widget_set_visible(vbox, FALSE);
    graphics_info_t::hide_vertical_validation_frame_if_appropriate();
@@ -772,13 +772,24 @@ on_dynamic_validation_include_missing_sidechains_checkbutton_toggled(GtkCheckBut
 
 }
 
+extern "C" G_MODULE_EXPORT
+void
+on_atoms_with_zero_occupancy_close_button_clicked(GtkButton *button, gpointer data) {
+
+   GtkWidget *outer_vbox = widget_from_builder("atoms_with_zero_occupancy_outer_vbox");
+   gtk_widget_set_visible(outer_vbox, FALSE);
+   graphics_info_t g;
+   g.graphics_grab_focus();
+}
 
 
 extern "C" G_MODULE_EXPORT
 void
 on_go_to_ligand_button_clicked(GtkButton *button,
                                gpointer   user_data) {
-  go_to_ligand();
+   go_to_ligand();
+   graphics_info_t g;
+   g.graphics_grab_focus();
 }
 
 
@@ -798,6 +809,8 @@ void
 on_coot_points_button_clicked(GtkButton       *button,
                               gpointer         user_data) {
    show_coot_points_frame();
+   graphics_info_t g;
+   g.graphics_grab_focus();
 }
 
 
@@ -808,10 +821,9 @@ on_gaussian_surface_cancel_button_clicked(GtkButton       *button,
                                           gpointer         user_data) {
    GtkWidget *frame = widget_from_builder("gaussian_surface_frame");
    gtk_widget_set_visible(frame, FALSE);
+   graphics_info_t g;
+   g.graphics_grab_focus();
 }
-
-
-
 
 extern "C" G_MODULE_EXPORT
 void

@@ -596,7 +596,7 @@ class molecule_class_info_t {
    // NXmap, not the xmap)
    //
    // bool is_em_map(const clipper::CCP4MAPfile &file) const;
-   bool set_is_em_map(const clipper_map_file_wrapper &file);
+   bool set_is_em_map(const clipper_map_file_wrapper &file, const std::string &file_name);
 
    // for quads/triangle strip for the bond representation (rather
    // than gl_lines).
@@ -1323,8 +1323,8 @@ public:        //                      public
    // functions, add a label to the atom with the characteristics
    // (using atom_index).
    //
-   int    add_atom_label(char *chain_id, int iresno, char *atom_id);
-   int remove_atom_label(char *chain_id, int iresno, char *atom_id);
+   int    add_atom_label(const char *chain_id, int iresno, const char *atom_id);
+   int remove_atom_label(const char *chain_id, int iresno, const char *atom_id);
    void remove_atom_labels(); // and symm labels
    int add_atom_labels_for_residue(mmdb::Residue *residue_p);
 
