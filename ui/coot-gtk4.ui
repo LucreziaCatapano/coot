@@ -4341,6 +4341,88 @@ the Ctrl key when moving the mouse.</property>
     </action-widgets>
   </object>
 
+  <object class="GtkDialog" id="replace_fragment_dialog">
+    <property name="title" translatable="yes">Coot: Replace Fragment</property>
+    <signal name="response" handler="on_replace_fragment_dialog_response" swapped="no"/>
+    <child>
+      <object class="GtkBox">
+        <property name="spacing">6</property>
+        <property name="orientation">vertical</property>
+        <property name="margin-start">6</property>
+        <property name="margin-end">6</property>
+        <property name="margin-bottom">6</property>
+        <property name="margin-top">6</property>
+
+        <child>
+          <object class="GtkLabel">
+            <property name="label" translatable="yes">Copy From Molecule:</property>
+            <property name="halign">start</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkComboBoxText" id="replace_fragment_from_molecule_combobox">
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+
+            <child>
+              <object class="GtkLabel">
+                <property name="label" translatable="yes"> Atom Selection for Fragment  </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkEntry" id="replace_fragment_atom_selection_entry">
+                <property name="placeholder_text" translatable="yes">//A/1-10</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+	<child>
+	  <object class="GtkLabel">
+	    <property name="label" translatable="yes">Copy Into Molecule:</property>
+            <property name="halign">start</property>
+	  </object>
+	</child>
+
+        <child>
+          <object class="GtkComboBoxText" id="replace_fragment_to_molecule_combobox">
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="halign">end</property>
+            <child>
+              <object class="GtkButton" id="replace_fragment_cancel_button">
+                <property name="label" translatable="yes"> Cancel </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="replace_fragment_ok_button">
+                <property name="label" translatable="yes">Copy Fragment</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-6">replace_fragment_cancel_button</action-widget>
+      <action-widget response="-5">replace_fragment_ok_button</action-widget>
+    </action-widgets>
+  </object>
+
   <object class="GtkDialog" id="delete_item_dialog">
     <property name="title" translatable="yes">Delete item</property>
     <child>
@@ -6777,6 +6859,15 @@ Do you want to continue?
               </child>
 
               <child>
+                <object class="GtkCheckButton" id="show_logging_menubutton">
+                  <property name="label" translatable="yes">Log</property>
+                  <property name="tooltip-text">Show the logging pane</property>
+                  <property name="halign">end</property>
+                  <signal name="toggled" handler="on_show_logging_menubutton_checkbutton_toggled" swapped="no"/>
+                </object>
+              </child>
+
+              <child>
                 <object class="GtkMenuButton" id="add_module_menubutton">
                   <property name="label" translatable="yes">+</property>
                   <property name="tooltip-text">Load an extension module</property>
@@ -7119,37 +7210,66 @@ Do you want to continue?
                       </object>
                     </child>
 
+		    <child>
+		      <object class="GtkBox" id="main_window_validation_graph_frame_wrapper_vbox">
+			<property name="orientation">vertical</property>
 
-                    <child>
-                      <object class="GtkFrame" id="main_window_validation_graph_frame">
-                        <!-- <property name="halign">fill</property> -->
-                        <!-- <property name="valign">end</property> -->
-                        <property name="hexpand">True</property>
-                        <property name="vexpand">True</property>
-                        <property name="visible">False</property>
-                        <property name="margin-bottom">5</property>
-                        <property name="margin-end">5</property>
-                        <property name="margin-start">5</property>
-                        <property name="margin-top">5</property>
-
-                        <child>
-                          <object class="GtkScrolledWindow">
+			<child>
+			  <object class="GtkFrame" id="main_window_validation_graph_frame">
+                            <!-- <property name="halign">fill</property> -->
+                            <!-- <property name="valign">end</property> -->
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
+                            <property name="visible">False</property>
+                            <property name="margin-bottom">5</property>
+                            <property name="margin-end">5</property>
+                            <property name="margin-start">5</property>
+                            <property name="margin-top">5</property>
+
                             <child>
-                              <object class="GtkBox" id="main_window_validation_graph_box">
-                                <property name="orientation">vertical</property>
-                                <property name="hexpand">True</property>
-                                <property name="vexpand">True</property>
-                                <property name="spacing">5</property>
+                              <object class="GtkScrolledWindow">
+				<property name="hexpand">True</property>
+				<property name="vexpand">True</property>
+				<child>
+				  <object class="GtkBox" id="main_window_validation_graph_box">
+                                    <property name="orientation">vertical</property>
+                                    <property name="hexpand">True</property>
+                                    <property name="vexpand">True</property>
+                                    <property name="spacing">5</property>
+				  </object>
+				</child>
                               </object>
                             </child>
-                          </object>
-                        </child>
 
-                      </object>
-                    </child>
+			  </object>
+			</child>
 
+			<child>
+			  <object class="GtkBox" id="logging_vbox">
+			    <property name="orientation">vertical</property>
+			    <property name="margin-bottom">4</property>
+			    <property name="margin-end">4</property>
+			    <property name="margin-start">4</property>
+			    <property name="margin-top">4</property>
+			    <child>
+			      <object class="GtkScrolledWindow" id="logging_scrolledwindow">
+				<property name="hexpand">1</property>
+				<property name="vexpand">1</property>
+				<child>
+				  <object class="GtkViewport">
+				    <child>
+				      <object class="GtkTextView" id="logging_textview">
+					<property name="height-request">200</property>
+				      </object>
+				    </child>
+				  </object>
+				</child>
+			      </object>
+			    </child>
+			  </object>
+			</child>
+		      </object>
+		    </child>
                   </object>
                 </child>
 
@@ -7275,6 +7395,67 @@ Do you want to continue?
               </object>
             </child>
 
+            <child type="overlay">
+              <object class="GtkFrame" id="copy-molecule-frame">
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <property name="visible">False</property>
+                <property name="margin-bottom">5</property>
+                <property name="margin-end">5</property>
+                <property name="margin-start">5</property>
+                <property name="margin-top">5</property>
+		<child>
+		  <object class="GtkBox" id="copy_molecule_vbox">
+		    <property name="orientation">vertical</property>
+                    <child>
+                      <object class="GtkLabel">
+			<property name="label">Molecule to Copy:</property>
+			<property name="margin-end">6</property>
+			<property name="margin-start">6</property>
+                      </object>
+		    </child>
+
+                    <child>
+                      <object class="GtkComboBoxText" id="copy_molecule_comboboxtext">
+                        <property name="margin-start">4</property>
+                        <property name="margin-end">4</property>
+                        <property name="margin-top">4</property>
+                        <property name="margin-bottom">4</property>
+                      </object>
+                    </child>
+		    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="halign">end</property>
+                        <child>
+                          <object class="GtkButton" id="copy_molecule_cancel_button">
+                            <signal name="clicked" handler="on_copy_molecule_cancel_button_clicked" swapped="no"/>
+                            <property name="label" translatable="yes">Cancel</property>
+                            <property name="margin-start">10</property>
+                            <property name="margin-end">10</property>
+                            <property name="margin-top">4</property>
+                            <property name="margin-bottom">10</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="copy_molecule_copy_button">
+                            <signal name="clicked" handler="on_copy_molecule_copy_button_clicked" swapped="no"/>
+                            <property name="label" translatable="yes">Copy</property>
+                            <property name="margin-start">10</property>
+                            <property name="margin-end">10</property>
+                            <property name="margin-top">4</property>
+                            <property name="margin-bottom">10</property>
+                            <style>
+                              <class name="suggested-action"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+		  </object>
+		</child>
+	      </object>
+	    </child>
 
             <child type="overlay">
               <object class="GtkFrame" id="acedrg_running_frame">
@@ -7285,13 +7466,13 @@ Do you want to continue?
                 <property name="margin-end">5</property>
                 <property name="margin-start">5</property>
                 <property name="margin-top">5</property>
-                  <child>
-                    <object class="GtkLabel">
-                           <property name="label">Acedrg is running...</property>
-                           <property name="margin-end">6</property>
-                           <property name="margin-start">6</property>
-                    </object>
-               </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label">Acedrg is running...</property>
+                    <property name="margin-end">6</property>
+                    <property name="margin-start">6</property>
+                  </object>
+		</child>
               </object>
             </child>
 
@@ -10277,7 +10458,7 @@ Do you want to continue?
 	    <child>
 	      <object class="GtkLabel">
 		<property name="label" translatable="yes">Choose Molecule:</property>
-		<property name="justify">start</property>
+		<property name="justify">left</property>
 	      </object>
 	    </child>
 	  </object>

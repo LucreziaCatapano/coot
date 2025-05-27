@@ -180,11 +180,47 @@ logging::log(log_t type_in, const function_name_t &fn, const std::string &s1, co
    if (success == 0) // was successful
       l.t = current_time.tv_sec;
    l.add_to_message(s1);
+   l.add_to_message(" ");
    l.add_to_message(s2);
    history.push_back(l);
    output_to_terminal_maybe();
    notify();
 }
+
+void
+logging::log(log_t type_in, const function_name_t &fn, const std::string &s1, int i) {
+
+   log_item l(type_in, fn);
+   timeval current_time;
+   int success = gettimeofday(&current_time, NULL);
+   if (success == 0) // was successful
+      l.t = current_time.tv_sec;
+   l.add_to_message(s1);
+   l.add_to_message(" ");
+   l.add_to_message(std::to_string(i));
+   history.push_back(l);
+   output_to_terminal_maybe();
+   notify();
+}
+
+void
+logging::log(log_t type_in, const function_name_t &fn, const std::string &s1, int i, const std::string &s2) {
+
+   log_item l(type_in, fn);
+   timeval current_time;
+   int success = gettimeofday(&current_time, NULL);
+   if (success == 0) // was successful
+      l.t = current_time.tv_sec;
+   l.add_to_message(s1);
+   l.add_to_message(" ");
+   l.add_to_message(std::to_string(i));
+   l.add_to_message(" ");
+   l.add_to_message(s2);
+   history.push_back(l);
+   output_to_terminal_maybe();
+   notify();
+}
+
 
 void
 logging::log(log_t type_in, const function_name_t &fn, const std::vector<ltw> &v) {
@@ -223,6 +259,80 @@ logging::log(log_t type_in, const std::string &s1, bool v1, const std::string &s
    output_to_terminal_maybe();
    notify();
 
+}
+
+void
+logging::log(log_t type_in, const std::string &s1, std::size_t s, const std::string &s2) {
+
+   log_item l(type_in);
+   timeval current_time;
+   int success = gettimeofday(&current_time, NULL);
+   if (success == 0) // was successful
+      l.t = current_time.tv_sec;
+   l.message = s1;
+   l.message += " ";
+   l.message += std::to_string(s);
+   l.message += " ";
+   l.message += s2;
+   history.push_back(l);
+   output_to_terminal_maybe();
+   notify();
+
+}
+
+void
+logging::log(log_t type_in, const std::string &s1, int i, const std::string &s2) {
+
+   log_item l(type_in);
+   timeval current_time;
+   int success = gettimeofday(&current_time, NULL);
+   if (success == 0) // was successful
+      l.t = current_time.tv_sec;
+   l.message = s1;
+   l.message += " ";
+   l.message += std::to_string(i);
+   l.message += " ";
+   l.message += s2;
+   history.push_back(l);
+   output_to_terminal_maybe();
+   notify();
+
+}
+
+void
+logging::log(log_t type_in, const std::string &s1, unsigned int i, const std::string &s2) {
+
+   log_item l(type_in);
+   timeval current_time;
+   int success = gettimeofday(&current_time, NULL);
+   if (success == 0) // was successful
+      l.t = current_time.tv_sec;
+   l.message = s1;
+   l.message += " ";
+   l.message += std::to_string(i);
+   l.message += " ";
+   l.message += s2;
+   history.push_back(l);
+   output_to_terminal_maybe();
+   notify();
+
+}
+void
+logging::log(log_t type_in, const std::string &s1, double d, const std::string &s2) {
+
+   log_item l(type_in);
+   timeval current_time;
+   int success = gettimeofday(&current_time, NULL);
+   if (success == 0) // was successful
+      l.t = current_time.tv_sec;
+   l.message = s1;
+   l.message += " ";
+   l.message += std::to_string(d);
+   l.message += " ";
+   l.message += s2;
+   history.push_back(l);
+   output_to_terminal_maybe();
+   notify();
 }
 
 void
@@ -466,23 +576,49 @@ logging::show() const {
 }
 
 std::string
-logging::log_item::to_string() const {
+logging::log_item::type_as_string() const {
 
-   std::string type_as_string;
-   if (type == log_t::INFO)        type_as_string = "INFO::";
-   if (type == log_t::DEBUG)       type_as_string = "DEBUG::";
-   if (type == log_t::ERROR)       type_as_string = "ERROR::";
-   if (type == log_t::WARNING)     type_as_string = "WARNING::";
-   if (type == log_t::UNSPECIFIED) type_as_string = "UNSPECIFIED::";
+   std::string tt;
+   if (type == log_t::INFO)        tt = "INFO::      ";
+   if (type == log_t::DEBUG)       tt = "DEBUG::  ";
+   if (type == log_t::ERROR)       tt = "ERROR::  ";
+   if (type == log_t::WARNING)     tt = "WARNING::";
+   if (type == log_t::UNSPECIFIED) tt = "UNSPECIFIED::";
+   return tt;
+}
+
+std::string
+logging::log_item::to_string(bool include_datetime, bool use_markup) const {
+
+   std::string ctime_str;
+   if (include_datetime) {
+      std::string ctime_str = ctime(&t);
+      if (! ctime_str.empty()) {
+	 ctime_str.pop_back();
+	 ctime_str += ":";
+      }
+   }
+   std::string tas = type_as_string();
+   std::string o;
+   if (ctime_str.empty())
+      o = tas + " ";
+   else
+      o = tas + " " + ctime_str + " ";
+   if (! function_name.empty())
+      o += function_name.fn + "(): ";
+   o += message;
+   return o;
+}
+
+std::string
+logging::log_item::get_date_string() const {
+
    std::string ctime_str = ctime(&t);
    if (! ctime_str.empty()) {
       ctime_str.pop_back();
       ctime_str += ":";
    }
-   std::string o = type_as_string + " " + ctime_str + ": " + message;
-   if (! function_name.empty())
-      o = type_as_string + " " + ctime_str + ": " + function_name.fn + ": " + message;
-   return o;
+   return ctime_str;
 }
 
 void
@@ -502,4 +638,16 @@ logging::show_last() const {
          std::cout << h.to_string() << std::endl;
       }
    }
+}
+
+std::vector<logging::log_item>
+logging::get_log_history_from(unsigned int idx_start) const {
+
+   std::vector<log_item> v;
+   if (idx_start < history.size()) {
+      for (unsigned int i=idx_start; i<history.size(); i++) {
+	 v.push_back(history[i]);
+      }
+   }
+   return v;
 }

@@ -806,11 +806,12 @@ new_startup_application_activate(GtkApplication *application,
 
    activate_data->application = application;
 
-#ifdef WINDOWS_MINGW
-   std::string window_name = "WinCoot-" + std::string(VERSION);
-#else
    std::string window_name = "Coot-" + std::string(VERSION);
+
+#ifdef WINDOWS_MINGW
+   window_name = "WinCoot-" + std::string(VERSION);
 #endif
+
    GtkWidget *app_window = gtk_application_window_new(application);
    gtk_window_set_application(GTK_WINDOW(app_window), application);
    gtk_window_set_title(GTK_WINDOW(app_window), window_name.c_str());
@@ -1065,6 +1066,14 @@ new_startup_application_activate(GtkApplication *application,
       };
       g_signal_connect(drop_target, "drop", G_CALLBACK(on_drop_performed), NULL);
 
+      // ------------------ no screenshot for macOS  -----------------------
+
+#ifdef __APPLE__
+      // GtkWidget *menu_item = widget_from_builder("screenshot-menu-item");
+      // if (menu_item)
+      // gtk_label_set_text(GTK_LABEL(menu_item), "Screenshot Not Available");
+#endif
+      
       // ---------------------  -----------------------
 
       gtk_widget_grab_focus(gl_area); // at the start, fixes focus problem

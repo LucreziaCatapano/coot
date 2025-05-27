@@ -1725,7 +1725,7 @@ molecule_class_info_t::map_fill_from_mtz_with_reso_limits(std::string mtz_file_n
 	 }
          // std::cout << "INFO:: finding ASU unique map points with sampling rate "
          //           << map_sampling_rate	<< std::endl;
-         logger.log(log_t::INFO, "finding ASU unique map points with sampling rate %f", map_sampling_rate);
+         logger.log(log_t::INFO, "finding ASU unique map points with sampling rate:", map_sampling_rate);
          clipper::Grid_sampling gs(fphidata.spacegroup(),
                                    fphidata.cell(),
                                    fft_reso,
@@ -2364,8 +2364,8 @@ molecule_class_info_t::read_ccp4_map(std::string filename, int is_diff_map_flag,
 
    if (map_file_type == CCP4) {
 
-      bool done = false;
-      if (coot::util::is_basic_em_map_file(filename)) {
+      coot::util::slurp_map_result_t done = coot::util::slurp_map_result_t::UNRESOLVED;
+      if (coot::util::is_basic_em_map_file(filename) == coot::util::slurp_map_result_t::IS_SLURPABLE_EM_MAP) {
          // fill xmap
          auto tp_1 = std::chrono::high_resolution_clock::now();
          bool check_only = false;
@@ -2374,12 +2374,12 @@ molecule_class_info_t::read_ccp4_map(std::string filename, int is_diff_map_flag,
          auto tp_2 = std::chrono::high_resolution_clock::now();
          auto d21 = std::chrono::duration_cast<std::chrono::milliseconds>(tp_2 - tp_1).count();
          std::cout << "INFO:: map read in " << d21 << " milliseconds with status: "
-		   << done << std::endl;
+		   << int(done) << std::endl;
 
          // Now set is_em_map_cached_flag and set the rotation centres.
          // I think that we only need set the is_em_map_cached_flag.
          //
-         if (done) {
+         if (done != coot::util::slurp_map_result_t::OK) {
             if (is_gzip) {
                em = true;
                is_em_map_cached_flag = true; // who else gzip map files?
@@ -2413,7 +2413,7 @@ molecule_class_info_t::read_ccp4_map(std::string filename, int is_diff_map_flag,
       }
 
 
-      if (! done) {
+      if (done != coot::util::slurp_map_result_t::OK) {
          std::cout << "INFO:: attempting to read CCP4 map: " << filename << std::endl;
          // clipper::CCP4MAPfile file;
          clipper_map_file_wrapper file;
@@ -2563,6 +2563,7 @@ bool
 molecule_class_info_t::set_is_em_map(const clipper_map_file_wrapper &file,
 				     const std::string &file_name) {
 
+
    // Even if mapdump says that the spacegroup is 0, file.spacegroup()
    // will be "P1".  So this returns true for maps with spacegroup 0
    // (and 90 degrees)
@@ -2574,11 +2575,18 @@ molecule_class_info_t::set_is_em_map(const clipper_map_file_wrapper &file,
 	  ((file.cell().descr().beta()  - M_PI/2) <  0.0001) &&
 	  ((file.cell().descr().gamma() - M_PI/2) > -0.0001) &&
 	  ((file.cell().descr().gamma() - M_PI/2) <  0.0001)) {
-	 if (file.starts_at_zero()) {
+
+#if 0 // 20250519-PE why did I need starts_at_zero() to be true? 901b738c98ee739b0788e868d4b9121800047668
+      // map clement/initial_map.ccp4 does not start at 0 and is an em map (fragment, I guess).
+         if (file.starts_at_zero()) {
 	    is_em_map_cached_flag = 1; // yes
 	 } else {
 	    is_em_map_cached_flag = 0;
 	 }
+#endif
+         is_em_map_cached_flag = true;
+
+
       } else {
 	 is_em_map_cached_flag = 0;
       }
@@ -4814,7 +4822,8 @@ molecule_class_info_t::colour_map_using_map(const clipper::Xmap<float> &xmap, fl
                                               // (position_to_colour_using_other_map(co))
       other_map_for_colouring_p = &xmap;
 
-      std::cout << "debug:: in colour_map_using_map() other_map_for_colouring_p is set to " << other_map_for_colouring_p << std::endl;
+      std::cout << "debug:: in colour_map_using_map() other_map_for_colouring_p is set to "
+		<< other_map_for_colouring_p << std::endl;
       other_map_for_colouring_min_value = table_bin_start;
       other_map_for_colouring_max_value = table_bin_start + colours.size() * table_bin_size;
       other_map_for_colouring_colour_table = colours;

@@ -173,7 +173,7 @@ PyObject *active_atom_spec_py();
 //
 #ifdef USE_GUILE
 
-//! \name  More Symmetry Functions
+//! \name More Scheme Symmetry Functions
 //! \{
 
 //! \brief return the symmetry of the imolth molecule
@@ -182,12 +182,26 @@ PyObject *active_atom_spec_py();
 //!   given molecule. If imol is a not a valid molecule, return an empty
 //!   list.*/
 SCM get_symmetry(int imol);
+//! \}
 #endif // USE_GUILE
 
 #ifdef USE_PYTHON
-// return a python object as a list (or some other python container)
+//! \name More Python Symmetry Functions
+//! \{
+
+//! \brief return the symmetry of the imolth molecule
+//!
+//!   Return as a list of strings the symmetry operators of the
+//!   given molecule. If imol is a not a valid molecule, return an empty
+//!   list.*/
+//! @return a python object as a list (or some other python container)
 PyObject *get_symmetry_py(int imol);
+//! \}
+
 #endif // USE_PYTHON
+
+//! \name More Symmetry Functions
+//! \{
 
 //! \brief return 1 if this residue clashes with the symmetry-related
 //!  atoms of the same molecule.
@@ -221,7 +235,6 @@ int add_molecular_symmetry_from_mtrix_from_file(int imol, const std::string &fil
 //! This is a convenience function for the above - where you don't need to
 //! specify the PDB file name.
 int add_molecular_symmetry_from_mtrix_from_self_file(int imol);
-
 
 //! \}
 
@@ -650,7 +663,16 @@ std::vector<std::string> dictionary_entries();
 //! debug dictionary information
 void debug_dictionary();
 
-//! this can throw an exception
+//! get types in molecule
+//!
+//! @param imol the molecule index
+//! @return a vector of residue types
+std::vector<std::string> get_types_in_molecule(int imol);
+
+//! Get the SMILES for the given residue type
+//!
+//! @param comp_id is the residue type
+//! @return the SMILES string
 std::string SMILES_for_comp_id(const std::string &comp_id);
 
 /*! \brief return a list of all the dictionaries read */
@@ -666,7 +688,14 @@ SCM SMILES_for_comp_id_scm(const std::string &comp_id);
 PyObject *dictionaries_read_py();
 PyObject *cif_file_for_comp_id_py(const std::string &comp_id);
 PyObject *dictionary_entries_py();
+
+//! Get the SMILES for the given residue type
+//
+//! @param comp_id is the residue type
+//! @return the SMILES string or False on failure to find the
+//!         residue type or SMILES string
 PyObject *SMILES_for_comp_id_py(const std::string &comp_id);
+
 #endif // PYTHON
 //! \}
 
@@ -674,9 +703,10 @@ PyObject *SMILES_for_comp_id_py(const std::string &comp_id);
 /*  ----------------------------------------------------------------------- */
 /*                         Restraints                                       */
 /*  ----------------------------------------------------------------------- */
-#ifdef USE_GUILE
 //! \name  Restraints Interface
 /// \{
+
+#ifdef USE_GUILE
 //! \brief return the monomer restraints for the given monomer_type,
 //!       return scheme false on "restraints for monomer not found"
 SCM monomer_restraints(const char *monomer_type);
@@ -701,8 +731,6 @@ void show_restraints_editor_by_index(int menu_item_index);
 
 /*! \brief write cif restraints for monomer */
 void write_restraints_cif_dictionary(std::string monomer_type, std::string file_name);
-
-
 
 //! \}
 
@@ -816,9 +844,10 @@ PyObject *get_residue_by_type_py(int, const std::string &residue_type);
 /*               Atom info                                                  */
 /*  ----------------------------------------------------------------------- */
 
-#ifdef USE_GUILE
 //! \name Atom Information functions
 //! \{
+
+#ifdef USE_GUILE
 //! \brief output atom info in a scheme list for use in scripting
 //!
 //! in this format (list occ temp-factor element x y z).  Return empty
@@ -1207,6 +1236,10 @@ bool get_cryo_em_refinement();
 SCM accept_moving_atoms_scm();
 #endif
 #ifdef USE_PYTHON
+//! Accept moving atoms
+//!
+//! This waits for the refinement to finish and then accepts
+//! the moving atoms so that they move into the main molecule.
 PyObject *accept_moving_atoms_py();
 #endif
 
@@ -1385,21 +1418,31 @@ SCM CG_spin_search_scm(int imol_model, int imol_map);
 #endif
 
 #ifdef USE_PYTHON
-//! \brief for the given residue, spin the atoms in moving_atom_list...
+//! for the given residue, spin the atoms in moving_atom_list...
 //!
 //!   around the bond defined by direction_atoms_list looking for the best
 //!   fit to density of imom_map map of the first atom in
 //!   moving_atom_list.  Works (only) with atoms in altconf ""
 void spin_search_py(int imol_map, int imol, const char *chain_id, int resno, const char *ins_code, PyObject *direction_atoms_list, PyObject *moving_atoms_list);
-//! \brief Spin N and CB (and the rest of the side chain if extant)
+
+//! Spin N and CB (and the rest of the side chain if extant)
 //!
 //!  Sometime on N-terminal addition, then N ends up pointing the wrong way.
 //!  The allows us to (more or less) interchange the positions of the CB and the N.
 //!  angle is in degrees.
 //!
+//! @param imol is the index of the model molecule
+//! @param residue_spec is the specifier for the residue
+//! @param angle is the rotation angle, in degrees, typically 120.
 void spin_N_py(int imol, PyObject *residue_spec, float angle);
 
-//! \brief Spin search the density based on possible positions of CG of a side-chain
+//! Spin search the density based on possible positions of CG of a side-chain
+//!
+//! @param imol_model is the index of the model molecule
+//! @param imol_map is the index of the map molecule
+//! @return either False (in the case of a failure) or a list of pairs of
+//!         residue specifers and score - for each spinnable residue
+//!         in the model.
 PyObject *CG_spin_search_py(int imol_model, int imol_map);
 
 #endif
@@ -1450,16 +1493,21 @@ void do_smiles_to_simple_3d_overlay_frame();
 /*                  conformers (part of ligand search)                      */
 /*  ----------------------------------------------------------------------- */
 
-#ifdef USE_GUILE
-/*! \brief make conformers of the ligand search molecules, each in its
-  own molecule.
-
-Don't search the density.
+//! \brief make conformers of the ligand search molecules, each in its
+//!  own molecule.
 
 //! \name Extra Ligand Functions
 //! \{
 
-Return a list of new molecule numbers */
+#ifdef USE_GUILE
+
+//! make conformations
+//!
+//! as if for a ligand search
+//!
+//! Don't search the density.
+//!
+//! @return a list of new molecule numbers
 SCM ligand_search_make_conformers_scm();
 #endif
 
@@ -1482,9 +1530,10 @@ void add_animated_ligand_interaction(int imol, const pli::fle_ligand_bond_t &lb)
 /*  ----------------------------------------------------------------------- */
 int cootaneer_internal(int imol_map, int imol_model, const coot::atom_spec_t &atom_spec);
 
-#ifdef USE_GUILE
 //! \name Dock Sidechains
 //! \{
+
+#ifdef USE_GUILE
 //! \brief cootaneer (i.e. assign sidechains onto mainchain model)
 //!
 //! atom_in_fragment_atom_spec is any atom spec in the fragment that should be
@@ -1495,6 +1544,12 @@ int cootaneer(int imol_map, int imol_model, SCM atom_in_fragment_atom_spec);
 #endif
 
 #ifdef USE_PYTHON
+//! \brief cootaneer (i.e. assign sidechains onto mainchain model)
+//!
+//! atom_in_fragment_atom_spec is any atom spec in the fragment that should be
+//! assigned with sidechains.
+//!
+//! @return the success status (0 is fail).
 int cootaneer_py(int imol_map, int imol_model, PyObject *atom_in_fragment_atom_spec);
 #endif
 

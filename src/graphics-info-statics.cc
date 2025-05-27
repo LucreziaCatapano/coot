@@ -98,6 +98,9 @@ std::vector<std::pair<std::string, clipper::Xmap<float> > > graphics_info_t::map
 int graphics_info_t::map_partition_results_state = 0; // inactive
 std::string graphics_info_t::map_partition_results_state_string; // "Done A Chain" etc.
 
+// logging
+unsigned int graphics_info_t::logging_line_index = 0;
+
 
 //WII
 #ifdef WII_INTERFACE_WIIUSE
@@ -1408,6 +1411,8 @@ std::pair<bool, float> graphics_info_t::model_display_radius = std::pair<bool, f
 
 // Chemical Feature Clusters, cfc
 GtkWidget *graphics_info_t::cfc_dialog = NULL;
+
+cfc_gui_t graphics_info_t::cfc_gui;
 
 bool graphics_info_t::coot_is_a_python_module = true;
 

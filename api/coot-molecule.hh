@@ -83,6 +83,7 @@
 
 #include "bond-colour.hh"
 #include "blender-mesh.hh"
+#include "user-defined-colour-table.hh"
 
 // 2023-07-04-PE This is a hack. This should be configured - and the
 // various functions that depend on this being true should be
@@ -600,6 +601,8 @@ namespace coot {
       unsigned int get_number_of_atoms() const;
       int get_number_of_hydrogen_atoms() const;
       float get_molecule_diameter() const;
+      //! get types
+      std::vector<std::string> get_types_in_molecule() const;
       mmdb::Residue *cid_to_residue(const std::string &cid) const;
       std::vector<mmdb::Residue *> cid_to_residues(const std::string &cid) const;
       mmdb::Atom *cid_to_atom(const std::string &cid) const;
@@ -1381,6 +1384,9 @@ namespace coot {
                                           bool use_thread_pool, ctpl::thread_pool *thread_pool_p);
       simple_mesh_t get_map_contours_mesh_using_other_map_for_colours(const clipper::Coord_orth &position, float radius, float contour_level,
                                                                       const clipper::Xmap<float> &xmap);
+      simple_mesh_t get_map_contours_mesh_using_other_map_for_colours(const clipper::Coord_orth &position, float radius, float contour_level,
+								      const user_defined_colour_table_t &udct,
+                                                                      const clipper::Xmap<float> &xmap);
 
       //! map histogram class
       class histogram_info_t {
@@ -1405,6 +1411,15 @@ namespace coot {
       //! The caller should also set the zoom factor (which reduces the range by the given factor)
       //! centred around the median (typically 1.0 but usefully can vary until ~20.0).
       histogram_info_t get_map_histogram(unsigned int n_bins, float zoom_factor) const;
+
+      // just look at the vertices of the map - not the whole thing
+      // Sample the points from other_map
+      histogram_info_t
+      get_map_vertices_histogram(const clipper::Xmap<float> &other_xmap,
+				 const clipper::Coord_orth &pt,
+				 float radius, float contour_level,
+				 bool use_thread_pool, ctpl::thread_pool *thread_pool_p,
+				 unsigned int n_bins);
 
       void set_map_colour(colour_holder holder);
       void set_map_colour_saturation(float s) { radial_map_colour_saturation = s; }

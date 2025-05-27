@@ -60,7 +60,7 @@
 #include "gtkglarea-rama-plot.hh"
 #include "cc-interface-scripting.hh"
 
-void get_monomer_dictionary_in_subthread(const std::string &comp_id);
+void get_monomer_dictionary_in_subthread(const std::string &comp_id, bool state);
 
 
 // this from callbacks.h (which I don't want to include here)
@@ -6193,9 +6193,26 @@ on_copy_fragment_dialog_response(GtkDialog *dialog,
    if (response_id == GTK_RESPONSE_CANCEL) {
       gtk_widget_set_visible(GTK_WIDGET(dialog), FALSE);
    }
-
 }
 
+extern "C" G_MODULE_EXPORT
+void
+on_replace_fragment_dialog_response(GtkDialog *dialog,
+				    gint response_id,
+				    gpointer user_data) {
+
+   if (response_id == GTK_RESPONSE_OK) {
+      graphics_info_t g;
+      GtkWidget *entry = widget_from_builder("replace_fragment_atom_selection_entry");
+      GtkWidget *combobox_from = widget_from_builder("replace_fragment_from_molecule_combobox");
+      GtkWidget *combobox_to   = widget_from_builder("replace_fragment_to_molecule_combobox");
+      std::string text = gtk_editable_get_text(GTK_EDITABLE(GTK_ENTRY(entry)));
+      int imol_from = g.combobox_get_imol(GTK_COMBO_BOX(combobox_from));
+      int imol_to   = g.combobox_get_imol(GTK_COMBO_BOX(combobox_to));
+      replace_fragment(imol_to, imol_from, text.c_str()); // move this to C++ api one day
+   }
+   gtk_widget_set_visible(GTK_WIDGET(dialog), FALSE);
+}
 
 extern "C" G_MODULE_EXPORT
 void
@@ -6923,7 +6940,10 @@ on_download_monomers_ok_button_clicked(GtkButton       *button,
       while (item_widget) {
 	 gchar *comp_id = static_cast<gchar *>(g_object_get_data(G_OBJECT(item_widget), "comp_id"));
 	 if (comp_id) {
-	    get_monomer_dictionary_in_subthread(comp_id);
+	    GtkWidget *dialog = widget_from_builder("download_monomers_dialog");
+	    int run_get_monomer_post_fetch_flag =
+	       GPOINTER_TO_INT(g_object_get_data(G_OBJECT(dialog), "run_get_monomer_post_fetch_flag"));
+	    get_monomer_dictionary_in_subthread(comp_id, run_get_monomer_post_fetch_flag);
 	 }
 	 item_widget = gtk_widget_get_next_sibling(item_widget);
       };
@@ -6932,6 +6952,27 @@ on_download_monomers_ok_button_clicked(GtkButton       *button,
 
    GtkWidget *dialog = widget_from_builder("download_monomers_dialog");
    gtk_widget_set_visible(dialog, FALSE);
+}
+
+
+extern "C" G_MODULE_EXPORT
+void
+on_add_other_solvent_molecules_new_residue_type_button_clicked(GtkButton       *button,
+							       gpointer         user_data) {
+
+   std::cout << "Add other solvent new residue type here " << std::endl;
+}
+
+
+extern "C" G_MODULE_EXPORT
+void
+on_add_other_solvent_molecules_close_button_clicked(GtkButton       *button,
+						    gpointer         user_data) {
+
+   GtkWidget *dialog = widget_from_builder("add_other_solvent_molecules_dialog");
+   if (dialog) {
+      gtk_widget_set_visible(dialog, FALSE);
+   }
 }
 
 extern "C" G_MODULE_EXPORT

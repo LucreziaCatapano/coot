@@ -177,6 +177,8 @@ enum { N_ATOMS_MEANS_BIG_MOLECULE = 400 };
 
 #include "labelled-button-info.hh"
 
+#include "cfc-gui.hh"
+
 #ifdef USE_BACKWARD
 #include <utils/backward.hpp>
 #endif
@@ -958,8 +960,8 @@ class graphics_info_t {
 
    std::string adjust_refinement_residue_name(const std::string &resname) const;
    static void info_dialog_missing_refinement_residues(const std::vector<std::string> &res_names);
-   // replaced by
-   static void show_missing_refinement_residues_dialog(const std::vector<std::string> &res_names);
+   // replaced by public
+   // static void show_missing_refinement_residues_dialog(const std::vector<std::string> &res_names);
 
    void info_dialog_alignment(coot::chain_mutation_info_container_t mutation_info) const;
    void info_dialog_refinement_non_matching_atoms(std::vector<std::pair<mmdb::Residue *, std::vector<std::string> > > nma);
@@ -2238,6 +2240,9 @@ public:
      check_dictionary_for_residue_restraints(int imol, mmdb::PResidue *SelResidues, int nSelResidues);
    std::pair<int, std::vector<std::string> >
      check_dictionary_for_residue_restraints(int imol, const std::vector<mmdb::Residue *> &residues);
+
+   static void show_missing_refinement_residues_dialog(const std::vector<std::string> &res_names,
+						       bool run_get_monomer_post_fetch_flag);
 
    // called by copy_mol_and_refine and copy_mol_and_regularize
    //
@@ -4412,47 +4417,8 @@ string   static std::string sessionid;
    // ------------------------- restraints editor ----------------------------
    //
    static std::vector<coot::restraints_editor> restraints_editors;
-   coot::restraints_editor get_restraints_editor(GtkWidget *w) {
-     coot::restraints_editor r; // a null/unset restraints editor
-     int found_index = -1;
-
-     if (0) // debug
-       for (unsigned int i=0; i<restraints_editors.size(); i++) {
-	 if (restraints_editors[i].is_valid())
-	   std::cout << " debug:: in get_restraints_editor() a stored restraints editor number "
-		     << i << " of " << restraints_editors.size() << ": "
-		     << restraints_editors[i].get_dialog()
-		     << " (c.f. " << w << ")" << std::endl;
-	 else
-	   std::cout << " debug:: in get_restraints_editor() a stored restraints editor number "
-		     << i << " of " << restraints_editors.size() << ": "
-		     << "NULL" << std::endl;
-       }
-
-
-     for (unsigned int i=0; i<restraints_editors.size(); i++) {
-       if (restraints_editors[i].is_valid()) {
-         if (restraints_editors[i].matches_dialog(w)) {
-           found_index = i;
-           break;
-         }
-       }
-     }
-     if (found_index != -1)
-       r = restraints_editors[found_index];
-     return r;
-   }
-   void clear_restraints_editor_by_dialog(GtkWidget *dialog) {
-     for (unsigned int i=0; i<restraints_editors.size(); i++) {
-       if (restraints_editors[i].is_valid()) {
-         if (restraints_editors[i].matches_dialog(dialog)) {
-	   coot::restraints_editor null_restraints;
- 	   restraints_editors[i] = null_restraints;
-	 }
-       }
-     }
-   }
-
+   coot::restraints_editor get_restraints_editor(GtkWidget *w);
+   void clear_restraints_editor_by_dialog(GtkWidget *dialog);
 
    // Kevin Keating (for example) wants to be able set torsion
    // restraints but not have those "fight" the built-in torsion
@@ -4591,6 +4557,9 @@ string   static std::string sessionid;
    void undisplay_all_model_molecules_except(int imol);
    void undisplay_all_model_molecules_except(const std::vector<int> &keep_these);
    static GtkWidget *cfc_dialog;
+
+   // new CFC - can scrap the above when this works:
+   static cfc_gui_t cfc_gui;
 
    static bool do_intermediate_atoms_rama_markup; // true
    static bool do_intermediate_atoms_rota_markup; // false
@@ -5473,6 +5442,8 @@ string   static std::string sessionid;
    static std::vector<std::pair<std::string, clipper::Xmap<float> > > map_partition_results;
    static int map_partition_results_state;
    static std::string map_partition_results_state_string; // "Done A Chain" etc.
+
+   static unsigned int logging_line_index;
 
    // add a pumpkin as a graphics object and draw it.
    void pumpkin();

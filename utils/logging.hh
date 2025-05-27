@@ -37,7 +37,7 @@ namespace coot {
    class atom_spec_t;
 }
 
-enum class log_t { INFO, WARNING, DEBUG, ERROR, UNSPECIFIED};
+enum class log_t { INFO, WARNING, DEBUG, ERROR, GL_ERROR, UNSPECIFIED};
 
 class logging {
 
@@ -48,7 +48,8 @@ public:
       explicit function_name_t() { fn = "unspecified"; }
       explicit function_name_t(const std::string &s) { fn = s; }
       std::string fn;
-      bool empty() const { return (fn != "unspecified"); }
+      std::string get_name() const { return fn + "()"; }
+      bool empty() const { return (fn == std::string("unspecified")); }
    };
 
    class ltw { // logging type wrapper
@@ -86,7 +87,9 @@ public:
       log_item(const std::string &message_in) : t(0), type(log_t::UNSPECIFIED), message(message_in) {}
       log_item(const std::vector<ltw> &ls);
       void add_to_message(const std::string &s) { message += s; }
-      std::string to_string() const;
+      std::string to_string(bool include_datetime=false, bool use_markup=true) const;
+      std::string type_as_string() const;
+      std::string get_date_string() const;
       friend std::ostream& operator<<(std::ostream &o, const log_item &li);
    };
 
@@ -107,6 +110,10 @@ public:
    void log(const std::string &s);
    void log(log_t type_in, const std::string &s1, bool v1, const std::string &s2);
    void log(log_t type_in, const std::string &s1, bool v1, const std::string &s2, const std::string &s3);
+   void log(log_t type_in, const std::string &s1, int, const std::string &s2);
+   void log(log_t type_in, const std::string &s1, unsigned int, const std::string &s2);
+   void log(log_t type_in, const std::string &s1, std::size_t s, const std::string &s2);
+   void log(log_t type_in, const std::string &s1, double d, const std::string &s2);
    void log(log_t type_in, const std::string &s1);
    void log(log_t type_in, const std::string &s1, const std::string &s2);
    void log(log_t type_in, const std::string &s1, const int &i);
@@ -135,11 +142,16 @@ public:
 
    void log(log_t type_in, const function_name_t &fn, const std::string &s1, const std::string &s2);
 
+   void log(log_t type_in, const function_name_t &fn, const std::string &s1, int);
+
    void log(log_t type_in, const function_name_t &fn, const std::vector<ltw> &v);
+
+   void log(log_t type_in, const function_name_t &fn, const std::string &s1, int i, const std::string &s2);
 
    void show() const;
    void show_last() const;
    void set_update_notifier_function(void (*func)()) { update_notifier_function = func; }
+   std::vector<log_item> get_log_history_from(unsigned int idx_start) const;
 
    friend std::ostream& operator<<(std::ostream &o, const log_item &li);
 };

@@ -169,7 +169,6 @@ graphics_info_t::stop_refinement_internal() {
    if (continue_threaded_refinement_loop) {
       continue_threaded_refinement_loop = false;
       threaded_refinement_needs_to_clear_up = true;
-      std::cout << "..................................... clear HUD buttons! " << std::endl;
       clear_hud_buttons(); // if a refinement was running and Esc was pressed, here is where we catch it.
    }
    // now wait until refinement stops... (before we call clear_up_moving_atoms (from the
@@ -372,7 +371,8 @@ graphics_info_t::copy_mol_and_refine(int imol_for_atoms,
 }
 
 void
-graphics_info_t::show_missing_refinement_residues_dialog(const std::vector<std::string> &res_names) {
+graphics_info_t::show_missing_refinement_residues_dialog(const std::vector<std::string> &res_names,
+							 bool run_get_monomer_post_fetch_flag) {
 
    GtkWidget *dialog = widget_from_builder("download_monomers_dialog");
    gtk_widget_set_visible(dialog, TRUE);
@@ -386,6 +386,8 @@ graphics_info_t::show_missing_refinement_residues_dialog(const std::vector<std::
       g_object_set_data(G_OBJECT(label), "comp_id", ccx); // read in on_download_monomers_ok_button_clicked()
       gtk_box_append(GTK_BOX(vbox), label);
    }
+   g_object_set_data(G_OBJECT(dialog), "run_get_monomer_post_fetch_flag",
+		     GINT_TO_POINTER(run_get_monomer_post_fetch_flag));
 }
 
 
@@ -1492,6 +1494,13 @@ graphics_info_t::generate_molecule_and_refine(int imol,
 					      mmdb::Manager *mol,
 					      bool use_map_flag) {
 
+   if (false) {
+      std::cout << "debug:: ----- start generate_molecule_and_refine() " << std::endl;
+      for (unsigned int i=0; i<residues_in.size(); i++) {
+	 std::cout << "   residue " << i << " of residues_in is " << residues_in[i] << std::endl;
+      }
+   }
+
 
    auto tp_0 = std::chrono::high_resolution_clock::now();
 
@@ -1563,10 +1572,15 @@ graphics_info_t::generate_molecule_and_refine(int imol,
 		  int nres = chain_p->GetNumberOfResidues();
 		  for (int ires=0; ires<nres; ires++) {
 		     mmdb::Residue *residue_p = chain_p->GetResidue(ires);
-		     std::cout << "residues_mol_and_res_vec mol:   residue "
-			       << coot::residue_spec_t(residue_p) << " residue "
-			       << residue_p << " chain " << residue_p->chain << " index "
-			       << residue_p->index << std::endl;
+		     if (residue_p) {
+			std::cout << "residues_mol_and_res_vec mol:   residue "
+				  << coot::residue_spec_t(residue_p) << " residue "
+				  << residue_p << " chain " << residue_p->chain << " index "
+				  << residue_p->index << std::endl;
+		     } else {
+			std::cout << "residues_mol_and_res_vec: residue " << ires << " was null"
+				  << std::endl;
+		     }
 		  }
 	       }
 	    }
@@ -1636,7 +1650,7 @@ graphics_info_t::generate_molecule_and_refine(int imol,
 	    check_dictionary_for_residue_restraints(imol, residues);
 	 if (icheck.first == 0) {
 	    // info_dialog_missing_refinement_residues(icheck.second);
-	    show_missing_refinement_residues_dialog(icheck.second);
+	    show_missing_refinement_residues_dialog(icheck.second, false);
 	 }
       }
    }
@@ -3780,7 +3794,7 @@ graphics_info_t::execute_simple_nucleotide_addition(int imol, const std::string 
 void
 graphics_info_t::execute_rotate_translate_ready() { // manual movement
 
-   std::cout << "execute_rotate_translate_ready() --- start ---" << std::endl;
+   // std::cout << "execute_rotate_translate_ready() --- start ---" << std::endl;
 
    // now we are called by chain and molecule pick (as well as the old
    // zone pick).

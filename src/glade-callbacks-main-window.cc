@@ -677,21 +677,10 @@ void on_replace_residue_ok_button_clicked(GtkButton *button,
    if (is_valid_model_molecule(imol)) {
       mmdb::Residue *residue_p = aa.second->residue;
       if (residue_p) {
-         coot::protein_geometry &geom = *graphics_info_t::Geom_p();
-         std::pair<bool, coot::dictionary_residue_restraints_t> rp = geom.get_monomer_restraints(new_residue_type, imol);
-         if (rp.first) {
-            const auto &restraints_new_type = rp.second;
-            mmdb::Manager *mol = graphics_info_t::molecules[imol].atom_sel.mol;
-            std::string current_residue_type = residue_p->GetResName();
-            std::pair<bool, coot::dictionary_residue_restraints_t> rp_current =
-               geom.get_monomer_restraints(current_residue_type, imol);
-            if (rp_current.first) {
-               const auto &restraints_current_type = rp_current.second;
-               int status = coot::util::mutate_by_overlap(residue_p, mol, restraints_current_type, restraints_new_type);
-               if (status == 0)
-                  logger.log(log_t::WARNING, "mutate_by_overlap() failed");
-            }
-         }
+	 std::string chain_id = residue_p->GetChainID();
+	 int res_no = residue_p->GetSeqNum();
+	 g.molecules[imol].mutate_by_overlap(chain_id, res_no, new_residue_type);
+	 g.graphics_draw();
       }
    }
    gtk_widget_set_visible(frame, FALSE);
@@ -1509,6 +1498,27 @@ on_copy_map_ok_button_clicked(G_GNUC_UNUSED GtkButton       *button,
 
 extern "C" G_MODULE_EXPORT
 void
+on_copy_molecule_cancel_button_clicked(G_GNUC_UNUSED GtkButton       *button,
+				       G_GNUC_UNUSED gpointer         user_data) {
+
+   GtkWidget *frame = widget_from_builder("copy-molecule-frame");
+   gtk_widget_set_visible(frame, FALSE);
+}
+
+extern "C" G_MODULE_EXPORT
+void
+on_copy_molecule_copy_button_clicked(G_GNUC_UNUSED GtkButton       *button,
+				     G_GNUC_UNUSED gpointer         user_data) {
+
+   GtkWidget *frame    = widget_from_builder("copy-molecule-frame");
+   GtkWidget *combobox = widget_from_builder("copy_molecule_comboboxtext");
+   int imol = my_combobox_get_imol(GTK_COMBO_BOX(combobox));
+   copy_molecule(imol);
+   gtk_widget_set_visible(frame, FALSE);
+}
+
+extern "C" G_MODULE_EXPORT
+void
 on_make_smooth_map_cancel_button_clicked(G_GNUC_UNUSED GtkButton       *button,
                                          G_GNUC_UNUSED gpointer         user_data) {
 
@@ -1812,4 +1822,120 @@ on_hole_set_end_button_clicked(G_GNUC_UNUSED GtkButton       *button,
    catch (const std::runtime_error &e) {
       std::cout << "WARNING::" << e.what() << std::endl;
    }
+}
+
+void fill_logging_text_view() {
+
+   GtkWidget *textview = widget_from_builder("logging_textview");
+   GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
+   GtkTextIter end_iter;
+
+   std::vector<logging::log_item> lv = logger.get_log_history_from(graphics_info_t::logging_line_index);
+   std::cout << "fill textview " << textview << " here" << std::endl;
+   if (! lv.empty()) {
+
+      // Create a text tag for the color
+      //
+      std::string datetime_colour = "#8888aa";
+      GtkTextTag *datetime_color_tag = gtk_text_tag_new("datetime-color");
+      g_object_set(datetime_color_tag, "foreground", datetime_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), datetime_color_tag);
+      //
+      std::string info_type_colour = "#00eeee";
+      GtkTextTag *info_color_tag = gtk_text_tag_new("info-type-color");
+      g_object_set(info_color_tag, "foreground", info_type_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), info_color_tag);
+      //
+      std::string debug_type_colour = "#999999";
+      GtkTextTag *debug_color_tag = gtk_text_tag_new("debug-type-color");
+      g_object_set(debug_color_tag, "foreground", debug_type_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), debug_color_tag);
+      //
+      std::string warning_type_colour = "#ff9900";
+      GtkTextTag *warning_color_tag = gtk_text_tag_new("warning-type-color");
+      g_object_set(warning_color_tag, "foreground", warning_type_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), warning_color_tag);
+      //
+      std::string error_type_colour = "#ee2222";
+      GtkTextTag *error_color_tag = gtk_text_tag_new("error-type-color");
+      g_object_set(error_color_tag, "foreground", error_type_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), error_color_tag);
+      //
+      std::string gl_error_type_colour = "#ee2222";
+      GtkTextTag *gl_error_color_tag = gtk_text_tag_new("gl_error-type-color");
+      g_object_set(gl_error_color_tag, "foreground", gl_error_type_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), gl_error_color_tag);
+      //
+      std::string default_type_colour = "#bbbbbb";
+      GtkTextTag *default_color_tag = gtk_text_tag_new("default-type-color");
+      g_object_set(default_color_tag, "foreground", default_type_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), default_color_tag);
+      //
+      std::string function_name_colour = "#cc99cc";
+      GtkTextTag *function_name_color_tag = gtk_text_tag_new("function-name-color");
+      g_object_set(function_name_color_tag, "foreground", function_name_colour.c_str(), NULL);
+      gtk_text_tag_table_add(gtk_text_buffer_get_tag_table(buffer), function_name_color_tag);
+
+      for (const auto &item : lv) {
+
+	 // Insert the colored text
+
+	 gtk_text_buffer_get_end_iter(buffer, &end_iter);
+
+	 std::string log_type_text = item.type_as_string();
+	 std::string color_tag_name = "default-type-color";
+	 if (item.type == log_t::WARNING)  color_tag_name = "warning-type-color";
+	 if (item.type == log_t::DEBUG)    color_tag_name = "debug-type-color";
+	 if (item.type == log_t::INFO)     color_tag_name = "info-type-color";
+	 if (item.type == log_t::ERROR)    color_tag_name = "error-type-color";
+	 if (item.type == log_t::GL_ERROR) color_tag_name = "gl-error-type-color";
+
+	 gtk_text_buffer_insert_with_tags_by_name(buffer, &end_iter, log_type_text.c_str(),
+						  log_type_text.size(), color_tag_name.c_str(),
+						  NULL);
+
+	 // insert the date
+
+	 std::string d = item.get_date_string();
+	 gtk_text_buffer_get_end_iter(buffer, &end_iter);
+	 // gtk_text_buffer_insert(buffer, &end_iter, d.c_str(), d.size());
+	 gtk_text_buffer_insert_with_tags_by_name(buffer, &end_iter, d.c_str(), d.size(),
+						  "datetime-color", NULL);
+
+	 // insert the function
+	 if (! item.function_name.empty()) {
+	    std::string fn = std::string(" ") + item.function_name.get_name();
+	    gtk_text_buffer_get_end_iter(buffer, &end_iter);
+	    gtk_text_buffer_insert_with_tags_by_name(buffer, &end_iter, fn.c_str(), fn.size(),
+						     "function-name-color", NULL);
+	 }
+
+	 // insert the message
+
+	 std::string t = std::string(" ") + item.message;
+	 gtk_text_buffer_get_end_iter(buffer, &end_iter);
+	 gtk_text_buffer_insert(buffer, &end_iter, t.c_str(), t.size());
+
+	 // insert a new-line
+
+	 gtk_text_buffer_get_end_iter(buffer, &end_iter);
+	 gtk_text_buffer_insert(buffer, &end_iter, "\n", 1); // Add newline character
+
+      }
+   }
+}
+
+extern "C" G_MODULE_EXPORT
+void
+on_show_logging_menubutton_checkbutton_toggled(GtkCheckButton *checkbutton,
+					       G_GNUC_UNUSED gpointer user_data) {
+
+   GtkWidget *vbox = widget_from_builder("logging_vbox");
+   if (gtk_check_button_get_active(checkbutton)) {
+      gtk_widget_set_visible(vbox, TRUE);
+      fill_logging_text_view();
+   } else {
+      gtk_widget_set_visible(vbox, FALSE);
+   }
+
 }

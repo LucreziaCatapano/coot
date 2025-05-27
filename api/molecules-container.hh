@@ -37,6 +37,7 @@
 #include "moorhen-h-bonds.hh"
 #include "header-info.hh"
 #include "positioned-atom-spec.hh"
+#include "user-defined-colour-table.hh"
 
 //! the container of molecules. The class for all **libcootapi** functions.
 class molecules_container_t {
@@ -887,6 +888,9 @@ public:
    std::map<std::string, std::string>
    dictionary_atom_name_map(const std::string &comp_id_1, int imol_1, const std::string &comp_id_2, int imol_2);
 
+   //! get types
+   std::vector<std::string> get_types_in_molecule(int imol) const;
+
    // 20221030-PE nice to have one day:
    // int get_monomer_molecule_by_network_and_dict_gen(const std::string &text);
 
@@ -1434,7 +1438,8 @@ public:
    //!
    //! @param imol_ref the reference model molecule index
    //! @param imol_mov the moving model molecule index
-   void lsq_superpose(int imol_ref, int imol_mov);
+   //! @return the success status, i.e. whether or not there were enough atoms to superpose
+   bool lsq_superpose(int imol_ref, int imol_mov);
 
    //! Transform a map and create a new map
    //!
@@ -1782,8 +1787,24 @@ public:
    //! @param s is the map saturation, e.g. a number between 0 and 1, where 0 is grey and 1 is "lego-like" colour scheme.
    //!        0.5 is a nice middle value
    void set_map_colour_saturation(int imol, float s);
-   void set_colour_map_for_map_colored_by_other_map(std::vector<std::pair<double, std::vector<double> > > colour_table );
-   
+   void set_colour_map_for_map_coloured_by_other_map(std::vector<std::pair<double, std::vector<double> > > colour_table );
+
+   user_defined_colour_table_t colour_map_by_other_map_user_defined_table;
+
+   //! Get map vertices histogram
+   //!
+   //! Note not const because get_map_contours_mesh() is not const
+   //!
+   //! @param imol is the map molecule index
+   //! @param n_bins is the number of bins - 40 is a reasonable default.
+   //!
+   //! @return the map vertices histogram
+   coot::molecule_t::histogram_info_t get_map_vertices_histogram(int imol, int imol_map_for_sampling,
+								 double position_x, double position_y, double position_z,
+								 float radius, float contour_level,
+								 unsigned int n_bins);
+
+
 
    //! Get the latest sfcalc stats
    //!

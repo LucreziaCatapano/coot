@@ -34,7 +34,10 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
-bool
+#include "utils/logging.hh"
+extern logging logger;
+
+coot::util::slurp_map_result_t
 coot::util::is_basic_em_map_file(const std::string &file_name) {
 
    clipper::Xmap<float> xmap;
@@ -43,7 +46,7 @@ coot::util::is_basic_em_map_file(const std::string &file_name) {
 
 #include "voidp-buffer.hh"
 
-bool
+coot::util::slurp_map_result_t
 coot::util::slurp_fill_xmap_from_map_file(const std::string &file_name,
                                           clipper::Xmap<float> *xmap_p,
                                           bool check_only) { // default arg, false
@@ -68,7 +71,7 @@ coot::util::slurp_fill_xmap_from_map_file(const std::string &file_name,
                                                clipper::Xmap<float> *xmap_p,
                                                bool check_only) {
 
-      int status  = 0;
+      slurp_map_result_t status = slurp_map_result_t::UNRESOLVED;
       struct stat s;
       int fstat = stat(file_name.c_str(), &s);
       if (fstat == 0) {
@@ -100,12 +103,13 @@ coot::util::slurp_fill_xmap_from_map_file(const std::string &file_name,
          *((char *)buff.get() + read_pos) = 0;
          char *data = reinterpret_cast< char *>(buff.get());
          status = slurp_parse_xmap_data(data, xmap_p, check_only); // fill xmap
-         std::cout << "DEBUG:: slurp_parse_xmap_data() returned with status " << status << std::endl;
+         std::cout << "DEBUG:: slurp_parse_xmap_data() returned with status "
+                   << int(status) << std::endl;
       }
       return status;
    };
 
-   bool status = false;
+   slurp_map_result_t status = slurp_map_result_t::UNRESOLVED;
    if (file_exists(file_name)) {
 
       bool is_gzip = false;
@@ -148,11 +152,12 @@ coot::util::slurp_fill_xmap_from_map_file(const std::string &file_name,
          }
       }
    } else {
+      status = slurp_map_result_t::FILE_NOT_FOUND;
       std::cout << "WARNING:: file does not exist " << file_name << std::endl;
    }
 
    if (true)
-      std::cout << "DEBUG:: slurp_fill_xmap_from_map_file() returning " << status << std::endl;
+      logger.log(log_t::DEBUG, "slurp_fill_xmap_from_map_file() returning", int(status));
 
    return status;
 }
@@ -160,7 +165,7 @@ coot::util::slurp_fill_xmap_from_map_file(const std::string &file_name,
 #include "utils/split-indices.hh"
 
 // return value (status) means "is_basic_EM_map" (that's slurpable)
-bool
+coot::util::slurp_map_result_t
 coot::util::slurp_parse_xmap_data(char *data,
                                   clipper::Xmap<float> *xmap_p,
                                   bool check_only) {
@@ -168,7 +173,7 @@ coot::util::slurp_parse_xmap_data(char *data,
    bool debug = true;
    bool print_labels = true;
 
-   bool status = false; // return this
+   slurp_map_result_t status = slurp_map_result_t::UNRESOLVED;
    int n_rows = -1;
    int n_cols = -1;
    int n_secs = -1;
@@ -200,8 +205,10 @@ coot::util::slurp_parse_xmap_data(char *data,
    mz = *reinterpret_cast<int *>(data+36);
 
    if (debug)
-      std::cout << "debug:: start and range " << nx_start << " " << ny_start << " " << nz_start
+      std::cout << "debug:: slurp_parse_xmap_data(): start and range "
+                << nx_start << " " << ny_start << " " << nz_start
                 << " range " << mx << " " << my << " " << mz << std::endl;
+
    float cell_a = 0, cell_b = 0, cell_c = 0;
    float cell_al = 0, cell_be = 0, cell_ga = 0;
    int map_row = -1, map_col = -1, map_sec = -1;
@@ -214,7 +221,7 @@ coot::util::slurp_parse_xmap_data(char *data,
    cell_ga = *reinterpret_cast<float *>(data+60);
 
    if (debug)
-      std::cout << "debug:: cell " << cell_a << " " << cell_b << " " << cell_c << " "
+      std::cout << "DEBUG:: slurp_parse_xmap_data(): cell " << cell_a << " " << cell_b << " " << cell_c << " "
                 << cell_al << " " << cell_be << " " << cell_ga << std::endl;
 
    // axis order
@@ -227,7 +234,8 @@ coot::util::slurp_parse_xmap_data(char *data,
    axis_order_xyz[map_sec-1] = 2;
 
    if (debug)
-      std::cout << "debug:: axis order " << map_row << " " << map_col << " " << map_sec << std::endl;
+      std::cout << "DEBUG:: slurp_parse_xmap_data(): axis order "
+                << map_row << " " << map_col << " " << map_sec << std::endl;
 
    // At the moment this function only works with simple X Y Z map ordering.
    // So escape with fail status if that is not the case
@@ -237,13 +245,6 @@ coot::util::slurp_parse_xmap_data(char *data,
          if (map_sec == 3)
             is_simple_x_y_z_order = true;
 
-   if (! is_simple_x_y_z_order) {
-      if (debug)
-         std::cout << "DEBUG:: Not simple X,Y,Z axis order - returning from slurp_parse_xmap_data() now "
-                   << std::endl;
-      return false;
-   }
-
    float dmin = 0.0, dmax = 0.0, dmean = 0.0;
    dmax  = *reinterpret_cast<float *>(data+76);
    dmin  = *reinterpret_cast<float *>(data+80);
@@ -252,11 +253,28 @@ coot::util::slurp_parse_xmap_data(char *data,
    space_group_number = *reinterpret_cast<int *>(data+88);
    if (space_group_number == 0) // EM, maybe chimera maps
       space_group_number = 1;
+
+   if (! is_simple_x_y_z_order) {
+      if (debug)
+         std::cout << "DEBUG:: Not simple X,Y,Z axis order - returning from slurp_parse_xmap_data() now "
+                   << std::endl;
+      status = slurp_map_result_t::UNRESOLVED;
+      if (check_only) {
+         auto is_small = [] (float v) { return (fabs(v) < 0.0001); };
+         if (mx > 0 && my > 0 && mz > 0) {
+            if (space_group_number == 1)
+               if(is_small(cell_al-90.0f) && is_small(cell_be-90.0f) && is_small(cell_ga-90.0f))
+                  status = slurp_map_result_t::IS_NON_SLURPABLE_EM_MAP;
+         }
+      }
+      return status;
+   }
+
    int size_extended_header = 0;
    size_extended_header = *reinterpret_cast<int *>(data+92);
-   char *extra = data+96; // 100 bytes max
+   char *extra    = data+ 96; // 100 bytes max
    char *ext_type = data+104; // 1 byte
-   char *version = data+108;  // 1 byte
+   char *version  = data+108; // 1 byte
 
    float origin_a = -1, origin_b = -1, origin_c = -1;
    origin_a = *reinterpret_cast<float *>(data+196);
@@ -268,13 +286,13 @@ coot::util::slurp_parse_xmap_data(char *data,
       if (mx > 0 && my > 0 && mz > 0) {
          if (space_group_number == 1)
             if(is_small(cell_al-90.0f) && is_small(cell_be-90.0f) && is_small(cell_ga-90.0f))
-               status = true;
+               status = slurp_map_result_t::IS_SLURPABLE_EM_MAP;
       }
       return status;
    }
 
    if (debug)
-      std::cout << "origin " << origin_a << " " << origin_b << " " << origin_c << std::endl;
+      std::cout << "debug:: slurp:: origin " << origin_a << " " << origin_b << " " << origin_c << std::endl;
 
    char *type = data+208; // 4 bytes "MAP "
    int machine_stamp = -1;
@@ -301,9 +319,14 @@ coot::util::slurp_parse_xmap_data(char *data,
       if (s.length() >= 8) {
          if (s.substr(0,8) == "PANDDA::") {
 	    std::cout << "debug:: slurp_parse_xmap_data() found a PANDDA::!" << std::endl;
-            return false;
+            return slurp_map_result_t::NOT_AN_EM_MAP;
 	 } else {
 	    std::cout << "debug:: " << s << " does not start with PANDDA::" << std::endl;
+	    if (s.length() >= 16) {
+	       if (s.substr(0,16) == "APPLY-SYMMETRY::") {
+                  return slurp_map_result_t::NOT_AN_EM_MAP;
+	       }
+	    }
 	 }
       }
    }
@@ -482,7 +505,7 @@ coot::util::slurp_parse_xmap_data(char *data,
             }
          }
       }
-      status = true;
+      status = slurp_map_result_t::OK;
    } else {
       std::vector<std::pair<unsigned int, unsigned int> > airs = atom_index_ranges(n_secs, n_threads);
       std::vector<std::thread> threads;
@@ -499,7 +522,7 @@ coot::util::slurp_parse_xmap_data(char *data,
             threads[i].join();
          if (debug)
             std::cout << "DEBUG:: thread join finished" << std::endl;
-         status = true;
+         status = slurp_map_result_t::OK;
       }
       catch (const std::system_error &e) {
          std::cout << "ERROR:: std::system_error: " << e.what() << std::endl;
@@ -507,7 +530,7 @@ coot::util::slurp_parse_xmap_data(char *data,
    }
 
    if (debug)
-      std::cout << "DEBUG:: coot::util::slurp_parse_xmap_data(): returning status " << status << std::endl;
+      std::cout << "DEBUG:: coot::util::slurp_parse_xmap_data(): returning status " << int(status) << std::endl;
 
    return status;
 }
