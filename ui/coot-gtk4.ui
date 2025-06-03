@@ -1229,6 +1229,10 @@
         <attribute name="action">app.cryo_em_make_partitioned_maps_action</attribute>
       </item>
       <item>
+        <attribute name="label" translatable="no">Vertex Gradients for Map Normals</attribute>
+        <attribute name="action">app.vertex_gradients_for_map_normals_action</attribute>
+      </item>
+      <item>
         <attribute name="label" translatable="no">Assign Sequence to Fragment</attribute>
         <attribute name="action">app.cryo_em_assign_sequence_to_active_fragment_action</attribute>
       </item>
@@ -1254,7 +1258,7 @@
         </submenu>
       </section>
       <item>
-        <attribute name="label" translatable="no">Sharpen/Blur Map...</attribute>
+        <attribute name="label" translatable="no">Sharpen/Blur/Resample Map...</attribute>
         <attribute name="action">app.cryo_em_sharpen_blur_map_action</attribute>
       </item>
     </section>
@@ -2112,7 +2116,7 @@ Copyright 2023, 2024, 2025 Global Phasing Ltd.</property>
   </object>
 
   <object class="GtkWindow" id="aniso_window">
-    <property name="title" translatable="yes">Anisotripic Atoms</property>
+    <property name="title" translatable="yes">Coot:: Anisotropic Atoms</property>
     <property name="deletable">0</property>
     <child>
       <object class="GtkBox" id="vbox16">
@@ -2238,7 +2242,7 @@ Copyright 2023, 2024, 2025 Global Phasing Ltd.</property>
                           <object class="GtkBox" id="hbox12">
                             <property name="homogeneous">1</property>
                             <child>
-                              <object class="GtkScale" id="aniso_probability_hscale">
+                              <object class="GtkScale" id="aniso_probability_hscale_old">
                                 <property name="can-focus">1</property>
                                 <property name="round-digits">3</property>
                               </object>
@@ -2699,8 +2703,36 @@ Calculate a skeleton now?
                     <child>
                       <object class="GtkCheckButton" id="draw_anisotropic_atoms_no_radiobutton">
                         <property name="label" translatable="yes">No</property>
+                        <property name="active">1</property>
                         <property name="group">draw_anisotropic_atoms_yes_radiobutton</property>
                         <signal name="toggled" handler="on_draw_anisotropic_atoms_no_radiobutton_toggled" swapped="no"/>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label" translatable="yes">Aniso Probability:</property>
+                            <property name="halign">start</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkScale" id="aniso_probability_hscale">
+                            <signal name="value-changed" handler="aniso_probability_hscale_value_changed"/>
+                            <property name="draw-value">true</property>
+                            <property name="can-focus">1</property>
+                            <property name="round-digits">3</property>
+                            <property name="digits">1</property>
+                            <property name="value-pos">top</property>
+                            <property name="vexpand">1</property>
+                            <!-- <property name="lower">0.0</property> -->
+                            <!-- <property name="upper">1.0</property> -->
+                            <!-- <property name="value">0.5</property> -->
+                            <!-- <property name="step-increment">1</property> -->
+                          </object>
+                        </child>
                       </object>
                     </child>
 
@@ -6910,6 +6942,7 @@ Do you want to continue?
 
     <child>
       <object class="GtkBox" id="main_window_hbox">
+
         <child>
           <object class="GtkOverlay" id="main_window_graphics_overlay">
             <property name="visible">True</property>
@@ -7077,7 +7110,6 @@ Do you want to continue?
 				  </object>
 				</child>
 
-				
                                 <child>
                                   <object class="GtkBox" id="dynamic_validation_vbox">
                                     <property name="visible">False</property>
@@ -7157,6 +7189,7 @@ Do you want to continue?
                     <property name="position">660</property>
                     <property name="orientation">vertical</property>
 
+                    <!-- first pane child -->
                     <child>
                       <object class="GtkBox" id="main_window_graphics_vbox">
                         <property name="orientation">vertical</property>
@@ -7207,69 +7240,66 @@ Do you want to continue?
                           </object>
                         </child>
 
+	                <child>
+	                  <object class="GtkBox" id="logging_vbox">
+	                    <property name="orientation">vertical</property>
+                            <property name="visible">False</property>
+	                    <property name="margin-bottom">4</property>
+	                    <property name="margin-end">4</property>
+	                    <property name="margin-start">4</property>
+	                    <property name="margin-top">4</property>
+	                    <child>
+	                      <object class="GtkScrolledWindow" id="logging_scrolledwindow">
+		                <property name="hexpand">1</property>
+		                <property name="vexpand">1</property>
+		                <child>
+		                  <object class="GtkViewport">
+		                    <child>
+		                      <object class="GtkTextView" id="logging_textview">
+			                <property name="height-request">200</property>
+		                      </object>
+		                    </child>
+		                  </object>
+		                </child>
+	                      </object>
+	                    </child>
+	                  </object>
+	                </child>
+
                       </object>
                     </child>
 
-		    <child>
-		      <object class="GtkBox" id="main_window_validation_graph_frame_wrapper_vbox">
-			<property name="orientation">vertical</property>
 
-			<child>
-			  <object class="GtkFrame" id="main_window_validation_graph_frame">
-                            <!-- <property name="halign">fill</property> -->
-                            <!-- <property name="valign">end</property> -->
+                    <child>
+                      <object class="GtkFrame" id="main_window_validation_graph_frame">
+                        <!-- <property name="halign">fill</property> -->
+                        <!-- <property name="valign">end</property> -->
+                        <property name="hexpand">True</property>
+                        <property name="vexpand">True</property>
+                        <property name="visible">False</property>
+                        <property name="margin-bottom">5</property>
+                        <property name="margin-end">5</property>
+                        <property name="margin-start">5</property>
+                        <property name="margin-top">5</property>
+
+                        <child>
+                          <object class="GtkScrolledWindow">
                             <property name="hexpand">True</property>
                             <property name="vexpand">True</property>
-                            <property name="visible">False</property>
-                            <property name="margin-bottom">5</property>
-                            <property name="margin-end">5</property>
-                            <property name="margin-start">5</property>
-                            <property name="margin-top">5</property>
-
                             <child>
-                              <object class="GtkScrolledWindow">
-				<property name="hexpand">True</property>
-				<property name="vexpand">True</property>
-				<child>
-				  <object class="GtkBox" id="main_window_validation_graph_box">
-                                    <property name="orientation">vertical</property>
-                                    <property name="hexpand">True</property>
-                                    <property name="vexpand">True</property>
-                                    <property name="spacing">5</property>
-				  </object>
-				</child>
+                              <object class="GtkBox" id="main_window_validation_graph_box">
+                                <property name="orientation">vertical</property>
+                                <property name="hexpand">True</property>
+                                <property name="vexpand">True</property>
+                                <property name="spacing">5</property>
                               </object>
                             </child>
+                          </object>
+                        </child>
 
-			  </object>
-			</child>
+                      </object>
+                    </child>
 
-			<child>
-			  <object class="GtkBox" id="logging_vbox">
-			    <property name="orientation">vertical</property>
-			    <property name="margin-bottom">4</property>
-			    <property name="margin-end">4</property>
-			    <property name="margin-start">4</property>
-			    <property name="margin-top">4</property>
-			    <child>
-			      <object class="GtkScrolledWindow" id="logging_scrolledwindow">
-				<property name="hexpand">1</property>
-				<property name="vexpand">1</property>
-				<child>
-				  <object class="GtkViewport">
-				    <child>
-				      <object class="GtkTextView" id="logging_textview">
-					<property name="height-request">200</property>
-				      </object>
-				    </child>
-				  </object>
-				</child>
-			      </object>
-			    </child>
-			  </object>
-			</child>
-		      </object>
-		    </child>
                   </object>
                 </child>
 

@@ -312,6 +312,7 @@ on_symmetry_colour_patch_button_clicked (GtkButton       *button,
 
 
 
+// old code - delete on a rainy day
 extern "C" G_MODULE_EXPORT
 void
 on_show_aniso_ok_button_clicked        (GtkButton       *button,
@@ -3982,6 +3983,29 @@ on_draw_ncs_ghosts_no_radiobutton_toggled(GtkToggleButton *togglebutton,
 
 extern "C" G_MODULE_EXPORT
 void
+aniso_probability_hscale_value_changed(GtkScale* range,
+                                       gpointer user_data) {
+
+   GtkWidget *bond_parameters_molecule_comboboxtext  = widget_from_builder("bond_parameters_molecule_comboboxtext");
+   GtkWidget *draw_anisotropic_atoms_yes_radiobutton = widget_from_builder("draw_anisotropic_atoms_yes_radiobutton");
+   if (bond_parameters_molecule_comboboxtext) {
+      if (draw_anisotropic_atoms_yes_radiobutton) {
+         GtkAdjustment *adjustment = gtk_range_get_adjustment(GTK_RANGE(range));
+         float fvalue = gtk_adjustment_get_value(adjustment);
+         graphics_info_t g;
+         g.show_aniso_atoms_probability = fvalue;
+         int imol = g.combobox_get_imol(GTK_COMBO_BOX(bond_parameters_molecule_comboboxtext));
+         if (gtk_check_button_get_active(GTK_CHECK_BUTTON(draw_anisotropic_atoms_yes_radiobutton))) {
+            // std::cout << "\ncalling set_show_atoms_as_aniso() with prob " << g.show_aniso_atoms_probability << std::endl;
+            graphics_info_t::molecules[imol].make_bonds_type_checked("aniso_probability_hscale_value_changed");
+            g.graphics_draw();
+         }
+      }
+   }
+}
+
+extern "C" G_MODULE_EXPORT
+void
 on_draw_anisotropic_atoms_yes_radiobutton_toggled(GtkCheckButton *checkbutton,
                                                   gpointer         user_data) {
 
@@ -6939,6 +6963,7 @@ on_download_monomers_ok_button_clicked(GtkButton       *button,
       GtkWidget *item_widget = gtk_widget_get_first_child(vbox);
       while (item_widget) {
 	 gchar *comp_id = static_cast<gchar *>(g_object_get_data(G_OBJECT(item_widget), "comp_id"));
+         std::cout << "debug:: on_download_monomers_ok_button_clicked comp_id is " << comp_id << std::endl;
 	 if (comp_id) {
 	    GtkWidget *dialog = widget_from_builder("download_monomers_dialog");
 	    int run_get_monomer_post_fetch_flag =

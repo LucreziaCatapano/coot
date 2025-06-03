@@ -1109,6 +1109,9 @@ molecule_class_info_t::get_bond_colour_basic(int colour_index, bool against_a_da
       case DARK_VIOLET:
          col = coot::colour_t(0.58, 0.0, 0.83);
          break;
+      case BORON_PINK:
+         col = coot::colour_t(0.98, 0.78, 0.69); // 0.98 0.72 0.63
+         break;
       default:
          col = coot::colour_t (0.7, 0.8, 0.8);
       }
@@ -1231,6 +1234,9 @@ molecule_class_info_t::get_bond_colour_by_mol_no(int colour_index, bool against_
             case DARK_VIOLET:
                rgb[0] = 0.58; rgb[1] = 0.0; rgb[2] = 0.83;
                break;
+            case BORON_PINK:
+               rgb[0] = 0.98; rgb[1] = 0.78; rgb[2] = 0.69;
+               break;
             default:
                rgb[0] = 0.8; rgb[1] =  0.2; rgb[2] =  0.2;
                rgb.rotate(colour_index*26.0/360.0);
@@ -1292,6 +1298,9 @@ molecule_class_info_t::get_bond_colour_by_mol_no(int colour_index, bool against_
                break;
             case DARK_VIOLET:
                rgb[0] = 0.58; rgb[1] = 0.0; rgb[2] = 0.83;
+               break;
+            case BORON_PINK:
+               rgb[0] = 0.98; rgb[1] = 0.78; rgb[2] = 0.69;
                break;
 
             default:
@@ -3702,6 +3711,7 @@ molecule_class_info_t::makebonds(const coot::protein_geometry *geom_p,
    bonds_box_type = coot::NORMAL_BONDS;
    if (! draw_hydrogens_flag)
       bonds_box_type = coot::BONDS_NO_HYDROGENS;
+
    if (false)
       std::cout << "   makebonds() C calls make_glsl_bonds_type_checked() imol "
                 << imol_no << " " << name_
@@ -3919,6 +3929,8 @@ molecule_class_info_t::make_bonds_type_checked(const char *caller) {
    coot::protein_geometry *geom_p = g.Geom_p();
 
    std::set<int> dummy;
+
+   // std::cout << "bonds_box_type " << bonds_box_type << std::endl;
 
    if (bonds_box_type == coot::NORMAL_BONDS) {
       if (debug)
@@ -4295,6 +4307,9 @@ molecule_class_info_t::make_meshes_from_bonds_box_instanced_version() {
       }
    };
 
+   if (false)
+      std::cout << "debug:: make_meshes_from_bonds_box_instanced_version() --- start --- " << std::endl;
+
    GLenum err = glGetError();
    if (err) std::cout << "GL ERROR:: in make_glsl_bonds_type_checked() --- start ---\n";
 
@@ -4346,9 +4361,11 @@ molecule_class_info_t::make_meshes_from_bonds_box_instanced_version() {
 
       err = glGetError();
       if (err) std::cout << "error in make_glsl_bonds_type_checked() pre molecules_as_mesh\n";
+      float aniso_probability = graphics_info_t::show_aniso_atoms_probability;
 
       model_molecule_meshes.make_graphical_bonds(imol_no, bonds_box, atom_radius, bond_radius,
                                                  show_atoms_as_aniso_flag, // class member - user setable
+                                                 aniso_probability,
                                                  show_aniso_atoms_as_ortep_flag, // ditto
                                                  num_subdivisions, n_slices, n_stacks, colour_table);
 
@@ -4716,8 +4733,8 @@ void
 molecule_class_info_t::make_bonds_type_checked(const std::set<int> &no_bonds_to_these_atom_indices,
                                                const char *caller) {
 
-   if (false)
-      std::cout << "debug:: ---- in make_bonds_type_checked() --- start ---" << std::endl;
+   if (true)
+      std::cout << "debug:: ---- in make_bonds_type_checked(2args) --- start ---" << std::endl;
 
    if (false) {
       std::string caller_s = "NULL";
