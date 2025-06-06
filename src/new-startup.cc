@@ -46,6 +46,9 @@
 
 #include "testing.hh" // for test_internal();
 
+#include "utils/logging.hh"
+extern logging logger;
+
 void print_opengl_info();
 
 void init_framebuffers(GtkWidget *glarea) {
@@ -54,7 +57,7 @@ void init_framebuffers(GtkWidget *glarea) {
 
    // std::cout << "DEBUG:: use_framebuffers: " << graphics_info_t::use_framebuffers << std::endl;
 
-   std::cout << "----- start init_framebuffers() ----" << std::endl;
+   // std::cout << "----- start init_framebuffers() ----" << std::endl;
 
    GtkAllocation allocation;
    gtk_widget_get_allocation(GTK_WIDGET(glarea), &allocation);
@@ -91,7 +94,7 @@ void init_framebuffers(GtkWidget *glarea) {
          std::cout << "ERROR:: init_framebuffers() --- done --- err is " << err << std::endl;
    }
 
-   std::cout << "----- done init_framebuffers() ----" << std::endl;
+   // std::cout << "----- done init_framebuffers() ----" << std::endl;
 }
 
 
@@ -673,7 +676,9 @@ handle_start_scripts() {
 #endif
    scripts = xdg.get_python_config_scripts();
    for (const auto &script : scripts) {
-      std::cout << "Load python config script " << script.c_str() << std::endl;
+      // std::cout << "Load python config script " << script.c_str() << std::endl;
+      logger.log(log_t::INFO, logging::function_name_t(__FUNCTION__),
+		 "Load python script", script);
       run_python_script(script.string().c_str());
    }
 #ifdef USE_GUILE
@@ -740,7 +745,7 @@ new_startup_create_splash_screen_window() {
    GtkWidget *splash_screen_window = gtk_window_new();
    gtk_window_set_title(GTK_WINDOW(splash_screen_window), "Coot-Splash");
    gtk_window_set_decorated(GTK_WINDOW(splash_screen_window), FALSE);
-   GtkWidget *picture = create_local_picture("coot-1.1.15.png");
+   GtkWidget *picture = create_local_picture("coot-1.1.16.png");
 
    gtk_widget_set_hexpand(GTK_WIDGET(picture),TRUE);
    gtk_widget_set_vexpand(GTK_WIDGET(picture),TRUE);
