@@ -65,9 +65,9 @@ molecules_container_t::init() {
    use_gemmi = true;
    imol_refinement_map = -1;
    imol_difference_map = -1;
-   // setup_syminfo();
-   // mmdb::InitMatType();
-   // geometry_init_standard(); // do this by default now
+   setup_syminfo();
+   mmdb::InitMatType();
+   geometry_init_standard(); // do this by default now
    refinement_immediate_replacement_flag = true; // 20221018-PE for WebAssembly for the moment
    imol_moving_atoms = -1;
    refinement_is_quiet = true;
@@ -6360,8 +6360,31 @@ molecules_container_t::get_types_in_molecule(int imol) const {
    if (is_valid_model_molecule(imol)) {
       v = molecules[imol].get_types_in_molecule();
    } else {
-      std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
+      // std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
+      logger.log(log_t::WARNING, logging::function_name_t(__FUNCTION__),
+		 "not a valid model molecule", imol);
    }
    return v;
+}
+
+
+//! Get Radius of Gyration
+//!
+//! @param imol is the model molecule index
+//!
+//! @return the molecule centre. If the number is less than zero, there
+//! was a problem finding the molecule or atoms.
+double
+molecules_container_t::get_radius_of_gyration(int imol) const {
+
+   double d = -1.0; // failure
+   if (is_valid_model_molecule(imol)) {
+      d = molecules[imol].get_radius_of_gyration();
+   } else {
+      // std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
+      logger.log(log_t::WARNING, logging::function_name_t(__FUNCTION__),
+		 "not a valid model molecule", imol);
+   }
+   return d;
 
 }

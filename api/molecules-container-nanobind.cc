@@ -212,9 +212,10 @@ std::string get_docstring_from_xml(const std::string& func_name) {
    }
    auto it = docstring_cache.find(func_name);
    if (it != docstring_cache.end()) {
-      if (true) // debugging
+      if (false) { // debugging - this can be quiet now
 	 std::cout << "function:" << func_name << "()" << std::endl;
-      std::cout << it->second << std::endl;
+	 std::cout << it->second << std::endl;
+      }
       return it->second;
    } else {
       std::cout << "::function " << func_name << " not found"
@@ -868,6 +869,9 @@ NB_MODULE(coot_headless_api, m) {
     .def("get_r_factor_stats",
          &molecules_container_t::get_r_factor_stats,
          get_docstring_from_xml("get_r_factor_stats").c_str())
+    .def("get_radius_of_gyration",
+         &molecules_container_t::get_radius_of_gyration,
+         get_docstring_from_xml("get_radius_of_gyration").c_str())
     .def("get_rama_plot_restraints_weight",
          &molecules_container_t::get_rama_plot_restraints_weight,
          get_docstring_from_xml("get_rama_plot_restraints_weight").c_str())
