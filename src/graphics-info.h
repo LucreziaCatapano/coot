@@ -1108,12 +1108,7 @@ public:
    std::chrono::time_point<std::chrono::system_clock> tp_now;
 
    static std::vector<GtkWidget *> glareas;
-   static GtkAllocation get_glarea_allocation() {
-      GtkAllocation allocation;
-      if (!glareas.empty())
-         gtk_widget_get_allocation(glareas[0], &allocation);
-      return allocation;
-   }
+   static GtkAllocation get_glarea_allocation();
    static gl_context_info_t get_gl_context_info() {
       gl_context_info_t glc; // null default
       if (glareas.size() > 0) glc.widget_1 = glareas[0];
@@ -4097,7 +4092,7 @@ public:
 
    void update_molecular_representation_widgets();
    static void molecular_representation_meshes_checkbutton_toggled(GtkCheckButton *button, gpointer *user_data);
-
+   static void undisplay_all_molecule_meshes(int imol); // for imol, of course
 
    int add_molecular_representation(int imol,
                                     const std::string &atom_selection,
@@ -4992,6 +4987,8 @@ string   static std::string sessionid;
    static void add_key_binding(keyboard_key_t k, key_bindings_t kb) {
       key_bindings_map[k] = kb;
    }
+
+   static void print_key_bindings();
 
    // GL IDs go here
 

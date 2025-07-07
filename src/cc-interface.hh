@@ -124,6 +124,15 @@ PyObject *add_cablam_markup_py(int imol, const std::string &cablam_log_file_name
 #endif
 
 /*  ---------------------------------------------------------------------- */
+/*                       key bindings :                                    */
+/*  ---------------------------------------------------------------------- */
+//! \name Key Bindings
+//! \{
+void print_key_bindings();
+//! \}
+
+
+/*  ---------------------------------------------------------------------- */
 /*                       go to atom   :                                    */
 /*  ---------------------------------------------------------------------- */
 
@@ -1177,10 +1186,14 @@ PyObject *all_residues_with_serial_numbers_py(int imol);
 #endif
 
 
+#ifdef SWIG
+#else
+
 //! \brief
 //! regularize the given residues
 //!
 void regularize_residues(int imol, const std::vector<coot::residue_spec_t> &residues);
+#endif
 
 //! presumes that imol_Refinement_Map has been set
 std::string mtz_file_name(int imol);
@@ -2462,16 +2475,17 @@ clipper::Spacegroup py_symop_strings_to_space_group(PyObject *symop_string_list)
 //! \brief enable or diable sounds (coot needs to have been compiled with sounds of course)
 void set_use_sounds(bool state);
 
-//! no sounds
+//! \brief no sounds
 void curmudgeon_mode();
 
+//! easter egg 2023
 void halloween();
 
 void display_svg_from_file_in_a_dialog(const std::string &file_name);
 
 void display_svg_from_string_in_a_dialog(const std::string &string, const std::string &title);
 
-void display_pae_from_file_in_a_dialog(const std::string &file_name);
+void display_pae_from_file_in_a_dialog(int imol, const std::string &file_name);
 
 void read_interesting_places_json_file(const std::string &file_name);
 
@@ -2480,6 +2494,7 @@ int setup_tomo_slider(int imol);
 void tomo_section_view(int imol, int axis_id);
 void set_tomo_section_view_section(int imol, int section_index);
 
+//! set tomo picker is active
 void set_tomo_picker_mode_is_active(short int state);
 
 #ifdef USE_PYTHON

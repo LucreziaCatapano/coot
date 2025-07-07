@@ -82,12 +82,12 @@ molecules_container_t::init() {
    map_sampling_rate = 1.8;
    draw_missing_residue_loops_flag = true;
 
-   // read_standard_residues();
+   read_standard_residues();
    interrupt_long_term_job = false;
    contouring_time = 0;
    make_backups_flag = true;
 
-   // thread_pool.resize(8);
+   // thread_pool.resize(8); // now in the constructor
 
    use_rama_plot_restraints = false;
    rama_plot_restraints_weight = 1.0;
@@ -153,6 +153,17 @@ molecules_container_t::is_valid_map_molecule(int imol) const {
    }
    return status;
 }
+
+//! make the logging output go to a file
+//!
+//! @param file_name the looging file name
+void
+molecules_container_t::set_logging_file(const std::string &file_name) {
+
+   logger.set_log_file(file_name);
+
+}
+
 
 //! Control the logging
 //!
@@ -840,7 +851,7 @@ molecules_container_t::import_cif_dictionary(const std::string &cif_file_name, i
                                                                  cif_dictionary_read_number, imol_enc);
    cif_dictionary_read_number++;
 
-   if (true)
+   if (false)
       std::cout << "debug:: import_cif_dictionary() cif_file_name: " << cif_file_name
                 << " for imol_enc " << imol_enc << " success " << r.success << " with "
                 << r.n_atoms << " atoms " << r.n_bonds << " bonds " << r.n_links << " links"
@@ -1779,6 +1790,21 @@ molecules_container_t::get_header_info(int imol) const {
                } else {
                   std::cout << "ERROR: no helix!?" << std::endl;
                }
+            }
+
+            for (int isheet=0; isheet<nsheet; isheet++) {
+               mmdb::Sheet *sheet_p = model_p->GetSheet(isheet);
+                 if (sheet_p) {
+                    int n_strand = sheet_p->nStrands;
+                    for (int istrand=0; istrand<n_strand; istrand++) {
+                       mmdb::Strand *strand_p = sheet_p->strand[istrand];
+                       moorhen::strand_t strand(strand_p->strandNo,
+                                                strand_p->initResName, strand_p->initChainID, strand_p->initSeqNum, strand_p->initICode,
+                                                strand_p->endResName,  strand_p->endChainID,  strand_p->endSeqNum,  strand_p->endICode,
+                                                strand_p->sense);
+                       header.strand_info.push_back(strand);
+                    }
+                 }
             }
          }
       }
@@ -2805,6 +2831,9 @@ molecules_container_t::refine_direct(int imol, std::vector<mmdb::Residue *> rv, 
                                        use_torsion_restraints, torsion_restraints_weight,
                                        refinement_is_quiet);
          set_updating_maps_need_an_update(imol);
+      } else {
+	 logger.log(log_t::WARNING, logging::function_name_t(__FUNCTION__),
+		    "not a valid map molecule, imol_refinement_map:", imol_refinement_map);
       }
    }
    return status;
@@ -2833,7 +2862,7 @@ molecules_container_t::refine_residues_using_atom_cid(int imol, const std::strin
          // status = refine_residues(imol, spec.chain_id, spec.res_no, spec.ins_code, spec.alt_conf, mode, n_cycles);
          std::vector<mmdb::Residue *> rv = molecules[imol].select_residues(cid, mode);
 
-         debug_selected_residues(rv);
+         // debug_selected_residues(rv);
          std::string alt_conf = "";
          status = refine_direct(imol, rv, alt_conf, n_cycles);
          set_updating_maps_need_an_update(imol);

@@ -491,6 +491,7 @@ libcootsumo_la_SOURCES = \
 	c-interface.cc		 \
 	c-interface-test.cc      \
 	cc-interface.hh		 \
+	cc-interface-utils.cc    \
 	cc-interface-alignment.cc \
 	cc-interface-graphics.cc \
 	cc-interface-graphics.hh \
@@ -728,6 +729,7 @@ libcootsumo_la_SOURCES = \
 	new-molecule-by-symmetry-matrix.hh \
 	nsv.hh                   \
 	obj_loader.h obj_loader.cc \
+	pae-interface.cc         \
 	pisa-interface.hh	 \
 	pisa-internal.hh         \
 	pick.hh pick.cc	         \
