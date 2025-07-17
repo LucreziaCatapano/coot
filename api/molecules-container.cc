@@ -4283,6 +4283,31 @@ molecules_container_t::get_non_standard_residues_in_molecule(int imol) const {
 }
 
 
+//! Try to read the dictionaries for any residue type in imol that as yet does not have
+//! a dictionary
+//!
+//! @param imol is the model molecule index
+//! @return true if there were no dictionary for new types that couldn't be read.
+bool
+molecules_container_t::try_read_dictionaries_for_new_residue_types(int imol) {
+
+   bool status = true;
+   std::vector<std::string> v = get_residue_names_with_no_dictionary(imol);
+   if (v.empty()) {
+      return true;
+   } else {
+      int read_number = 50;
+      int imol_enc_any = get_imol_enc_any();
+      for (const auto &rn : v) {
+         int ss = geom.check_and_try_dynamic_add(rn, imol_enc_any, read_number);
+         read_number++;
+      }
+   }
+   return status;
+}
+
+
+
 coot::simple_mesh_t
 molecules_container_t::get_molecular_representation_mesh(int imol, const std::string &cid, const std::string &colour_scheme,
                                                          const std::string &style, int secondary_structure_usage_flag) {
@@ -5219,14 +5244,16 @@ molecules_container_t::get_map_histogram(int imol, unsigned int n_bins, float zo
 
 
 //! read extra restraints (e.g. from ProSMART)
-void
+int
 molecules_container_t::read_extra_restraints(int imol, const std::string &file_name) {
 
+   int n = -1;
    if (is_valid_model_molecule(imol)) {
-      molecules[imol].read_extra_restraints(file_name);
+      n = molecules[imol].read_extra_restraints(file_name);
    } else {
       std::cout << "WARNING:: " << __FUNCTION__ << "(): not a valid model molecule " << imol << std::endl;
-  }
+   }
+   return n;
 }
 
 
