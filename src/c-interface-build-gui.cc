@@ -49,12 +49,12 @@
 #include <string>
 
 #include <mmdb2/mmdb_manager.h>
-#include "coords/mmdb-extras.h"
-#include "coords/mmdb.hh"
-#include "coords/mmdb-crystal.h"
 
-#include "coords/Cartesian.h"
-#include "coords/Bond_lines.h"
+#include "coords/mmdb-extras.hh"
+#include "coords/mmdb.hh"
+#include "coords/mmdb-crystal.hh"
+#include "coords/Cartesian.hh"
+#include "coords/Bond_lines.hh"
 
 #include "graphics-info.h"
 
@@ -227,7 +227,7 @@ GtkWidget *wrapped_create_delete_item_dialog() {
 // move_molecule_here_big_molecules_checkbutton.
 //
 void
-fill_move_molecule_here_dialog(GtkWidget *w) {
+fill_move_molecule_here_frame(GtkWidget *w) {
 
    // // GtkWidget *option_menu  = lookup_widget(w, "move_molecule_here_optionmenu");
 

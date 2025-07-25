@@ -30,7 +30,7 @@
 #include <epoxy/gl.h>
 
 #include <clipper/core/test_core.h>
-#include <clipper/contrib/test_contrib.h>
+ #include <clipper/contrib/test_contrib.h>
 
 #include "utils/xdg-base.hh"
 
@@ -99,7 +99,8 @@ void init_framebuffers(GtkWidget *glarea) {
 
 
 #include "text-rendering-utils.hh"
-std::string stringify_error_message(GLenum err);
+#include "stringify-error-code.hh"
+
 
 void
 new_startup_realize(GtkWidget *gl_area) {
@@ -199,20 +200,25 @@ new_startup_realize(GtkWidget *gl_area) {
    Material material;
    GLenum err = glGetError();
    if (err)
-      std::cout << "ERROR:: new_startup_realize() pos-D err is " << stringify_error_message(err)
+      std::cout << "ERROR:: new_startup_realize() pos-D err is " << stringify_error_code(err)
                 << std::endl;
    // g.attach_buffers();
    err = glGetError();
    if (err)
       std::cout << "ERROR:: new_startup_realize() pos-E post attach_buffers() err is "
-                << stringify_error_message(err) << std::endl;
+                << stringify_error_code(err) << std::endl;
    g.mesh_for_extra_distance_restraints.setup_extra_distance_restraint_cylinder(material); // init
+
+   // scale the gizmo to the object being translated
+   // float scale_factor = 22.2;
+   // g.translation_gizmo.scale(scale_factor);
+   // g.setup_draw_for_translation_gizmo();
 
    g.setup_key_bindings();
 
    err = glGetError();
    if (err)
-      std::cout << "ERROR:: new_startup_realize() --end-- err is " << stringify_error_message(err)
+      std::cout << "ERROR:: new_startup_realize() --end-- err is " << stringify_error_code(err)
                 << std::endl;
 
    // Hmm! - causes weird graphics problems
@@ -1167,6 +1173,7 @@ int
 do_self_tests() {
 
    std::cout << "INFO:: Running internal self tests" << std::endl;
+
    // return true on success
    clipper::Test_core test_core;       bool result_core    = test_core();
    clipper::Test_contrib test_contrib; bool result_contrib = test_contrib();

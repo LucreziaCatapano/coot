@@ -782,14 +782,17 @@ libcootsumo_la_SOURCES = \
 	startup-utils.cc         \
 	startup-scripts.hh       \
 	startup-scripts.hh       \
+	stringify-error-code.hh  \
 	testing.cc testing-2.cc  \
 	testing-data.hh          \
 	testing.hh               \
 	Texture.cc Texture.hh    \
 	TextureMesh.cc TextureMesh.hh \
-	tomo-tools.cc \
+	tomo-tools.cc            \
+	translation-gizmo.cc     \
+	translation-gizmo.hh     \
 	triangle-extras.h        \
-	user-mods.hh user-mods.cc\
+	user-mods.hh user-mods.cc \
 	xmap-utils.cc 		 \
 	xmap-utils.h             \
 	remarks-browser-gtk-widgets.hh \

@@ -57,7 +57,7 @@
 
 #include "clipper/core/xmap.h"
 
-#include "coords/Cartesian.h"
+#include "coords/Cartesian.hh"
 #include "ccp4mg-utils/mgtree.h"
 
 #include "pick.hh" // 20220723-PE no picking for WebAssembly build
@@ -153,6 +153,7 @@
 #include "framebuffer.hh"
 #include "lights-info.hh"
 #include "atom-label-info.hh"
+#include "translation-gizmo.hh"
 
 #ifdef USE_GUILE
 #include <libguile.h>
@@ -4117,6 +4118,7 @@ public:
 
    static GtkWidget *generic_objects_dialog;
    static std::vector<meshed_generic_display_object> generic_display_objects;
+   static bool is_valid_generic_display_object_number(int obj_no);
    static void from_generic_object_remove_last_item(int object_number);
 
    static void set_display_generic_object_simple(int object_number, short int istate) {
@@ -4613,6 +4615,15 @@ string   static std::string sessionid;
    static std::pair<bool,float> coords_centre_radius;  // should the display radius limit be applied? And
                                                        // if so, what is it? (say 20A)
                                                        // used in draw_bonds().
+
+   static translation_gizmo_t translation_gizmo;
+   static Mesh translation_gizmo_mesh;
+   static void setup_draw_for_translation_gizmo();
+   static void draw_translation_gizmo();
+   static bool translation_gizmo_is_being_dragged;
+   static translation_gizmo_t::pick_info_t translation_gizmo_axis_dragged;
+   static translation_gizmo_t::pick_info_t translation_gizmo_picked();
+   static void translate_things_on_translation_gizmo_dragged(); // including the gizmo
 
    // extensions registry
    // a name (a script file name) and a version number/identifier as a string
@@ -5319,8 +5330,7 @@ string   static std::string sessionid;
       }
    }
 
-
-   static std::string stringify_error_message(GLenum err) {
+   static std::string stringify_error_code(GLenum err) {
 
       std::string r = std::to_string(err);
       if (err == GL_INVALID_ENUM)      r = "GL_INVALID_ENUM";
@@ -5337,7 +5347,7 @@ string   static std::string sessionid;
             GLenum err = glGetError();
             if (err) {
                std::cout << "GL ERROR:: attach_buffers --- start --- "
-                         << stringify_error_message(err) <<  " \n";
+                         << stringify_error_code(err) <<  " \n";
 #ifdef USE_BACKWARD
                backward::StackTrace st;
                backward::Printer p;
@@ -5350,7 +5360,7 @@ string   static std::string sessionid;
             err = glGetError();
             if (err) {
                std::cout << "GL ERROR:: attach_buffers() --- post gtk_gl_area_attach_buffers() "
-                         << stringify_error_message(err) << " with gl_area " << gl_area
+                         << stringify_error_code(err) << " with gl_area " << gl_area
                          << " calling function: " << s << "()\n";
 #ifdef USE_BACKWARD
                backward::StackTrace st;
