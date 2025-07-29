@@ -43,7 +43,6 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <vector>
 #include <stdexcept>
 
 // For stat, mkdir:
@@ -4370,8 +4369,11 @@ molecule_class_info_t::make_meshes_from_bonds_box_instanced_version() {
                                                  show_aniso_atoms_as_ortep_flag, // ditto
                                                  num_subdivisions, n_slices, n_stacks, colour_table);
 
-      if (true) // test that model_molecule_meshes is not empty()
-         draw_it = 1;
+      // 2025-07-28 10:14 I don't want to set this here, surely.
+      // There should be some other control.
+      // I want to be able to update the mesh without seeing the bonds (Ctrl F)
+      // if (true) // test that model_molecule_meshes is not empty()
+      //    draw_it = 1;
 
       err = glGetError();
       if (err) std::cout << "error in make_glsl_bonds_type_checked() post molecules_as_mesh\n";
@@ -6890,18 +6892,18 @@ molecule_class_info_t::close_yourself() {
 	 original_fphis_p = 0;
          delete tmp_p;
       }
-      
+
       if (original_fobs_sigfobs_filled) {
          delete original_fobs_sigfobs_p;
 	 original_fobs_sigfobs_p = 0;
       }
-      
+
       if (original_r_free_flags_p) { // no flag for filled?
          delete original_r_free_flags_p;
 	 original_r_free_flags_p = 0;
       }
    }
-      
+
    // delete from display manager combo box
    //
    graphics_info_t g;
