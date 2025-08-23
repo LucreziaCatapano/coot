@@ -11922,5 +11922,26 @@ i.e. I added "cpp"
 
 treestitter does nice code markup.
 
+tabs:
+  to show a tab as equivalent spacing to 8 spaces:
+
+  in ~/.config/nvim/lua/options.lua
+
+    vim.opt.tabstop = 8
+
+# to check the file type in nvim:
+
+:set filetype?
+
+---
+Thu  7 Aug 2025 11:59:23 BST
+
+   see deepdewedge
+
+eman2 e2tomo_p22 particle picking
+
+see photos.
+
+get the slides
 
 
