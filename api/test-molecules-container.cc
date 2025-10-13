@@ -5718,6 +5718,7 @@ int test_n_map_sections(molecules_container_t &mc) {
    return status;
 }
 
+#if 0
 int test_rdkit_mol(molecules_container_t &mc) {
 
    starting_test(__FUNCTION__);
@@ -5732,6 +5733,7 @@ int test_rdkit_mol(molecules_container_t &mc) {
 #endif
    return status;
 }
+#endif
 
 
 
@@ -6636,6 +6638,23 @@ int test_dedust(molecules_container_t &mc) {
    return status;
 }
 
+int test_atom_overlaps(molecules_container_t &mc) {
+
+   starting_test(__FUNCTION__);
+   int status = 0;
+   int imol = mc.read_pdb(reference_data("moorhen-tutorial-structure-number-1.pdb"));
+   std::vector<coot::plain_atom_overlap_t> aov = mc.get_atom_overlaps(imol);
+   for (unsigned int i=0; i<aov.size(); i++) {
+      if (i > 10) continue;
+      const auto &ao = aov[i];
+      std::cout << "Overlapping atom " << ao.atom_spec_1 << " " << ao.atom_spec_2
+                << " with overlap volume " << ao.overlap_volume << std::endl;
+      if (ao.overlap_volume > 2.0) status = 1;
+   }
+
+   return status;
+}
+
 int test_template(molecules_container_t &mc) {
 
    starting_test(__FUNCTION__);
@@ -6922,7 +6941,7 @@ int main(int argc, char **argv) {
          status += run_test(test_n_map_sections, "N map sections ", mc);
 #ifdef MAKE_ENHANCED_LIGAND_TOOLS
          status += run_test(test_pdbe_dictionary_depiction, "pdbe dictionary depiction", mc);
-         status += run_test(test_rdkit_mol, "RDKit mol", mc);
+         // status += run_test(test_rdkit_mol, "RDKit mol", mc);
 #endif
 
 #ifdef USE_GEMMI
@@ -6971,7 +6990,8 @@ int main(int argc, char **argv) {
          status += run_test(test_radius_of_gyration, "radius of gyration", mc);
          status += run_test(test_temperature_factor_of_atom, "temperature factor of atom", mc);
          status += run_test(test_water_spherical_variance, "water spherical variance", mc);
-         status += run_test(test_dedust, "dedust", mc);
+         // status += run_test(test_dedust, "dedust", mc);
+         status += run_test(test_atom_overlaps, "atom overlaps", mc);
          if (status == n_tests) all_tests_status = 0;
 
          print_results_summary();

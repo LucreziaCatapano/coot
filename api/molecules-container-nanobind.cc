@@ -1,6 +1,9 @@
+
+#include <filesystem>
 #include <unordered_map>
 #include <sstream>
 
+#include <stdlib.h> // for getenv()
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/pair.h>
@@ -17,7 +20,6 @@
 #include "coot-utils/acedrg-types-for-residue.hh"
 #include "coot-utils/g_triangle.hh"
 #include "mini-mol/mini-mol-utils.hh"
-#include "lidia-core/use-rdkit.hh"
 
 #if NB_VERSION_MAJOR // for flychecking
 #include <nanobind/nanobind.h>
@@ -78,8 +80,26 @@ std::unordered_map<std::string, std::string> docstring_cache;
 std::string get_docstring_from_xml(const std::string& func_name) {
 
    // this is the relative path for standard out-of-tree build
-   std::string api_doxygen_xml_file_name =
+   std::string api_doxygen_xml_file_name_1 =
       "../coot/api/doxy-sphinx/xml/classmolecules__container__t.xml";
+   // for a build inside the source:
+   std::string api_doxygen_xml_file_name_2 =
+      "../api/doxy-sphinx/xml/classmolecules__container__t.xml";
+   // fill this:
+   std::string api_doxygen_xml_file_name;
+   if (std::filesystem::exists(std::filesystem::path(api_doxygen_xml_file_name_1)))
+      api_doxygen_xml_file_name = api_doxygen_xml_file_name_1;
+   if (std::filesystem::exists(std::filesystem::path(api_doxygen_xml_file_name_2)))
+      api_doxygen_xml_file_name = api_doxygen_xml_file_name_2;
+   // try to find the xml file using CONDA_PREFIX - idea from eunos-1128
+   const char *e = getenv("CONDA_PREFIX");
+   if (e) {
+      std::filesystem::path conda_prefix(e);
+      std::filesystem::path xml_dir = conda_prefix / "share" / "doxy-sphinx" / "xml";
+      std::filesystem::path full_path = xml_dir / "classmolecules__container__t.xml";
+      if (std::filesystem::exists(full_path))
+         api_doxygen_xml_file_name = full_path.string();
+   }
 
    auto convert_type = [] (const std::string &s_in) {
       std::string s = s_in;
@@ -115,6 +135,9 @@ std::string get_docstring_from_xml(const std::string& func_name) {
    if (docstring_cache.empty()) {
       pugi::xml_document doc;
       if (!doc.load_file(api_doxygen_xml_file_name.c_str())) {
+         std::cout << "WARNING:: doxygen file " << api_doxygen_xml_file_name
+                   << " not found - nanobind API docummentation will not be generated"
+                   << std::endl;
          return "";
       }
       auto compounddef = doc.child("doxygen").child("compounddef");
@@ -159,9 +182,9 @@ std::string get_docstring_from_xml(const std::string& func_name) {
             // Collect all <para> from <detaileddescription>
             auto detailed = member.child("detaileddescription");
             if (detailed) {
-	       unsigned int n_para = 0;
+               unsigned int n_para = 0;
                for (auto para : detailed.children("para")) {
-		  n_para++;
+                  n_para++;
                   std::string para_text = para.text().get();
                   if (!para_text.empty()) {
 		     if (n_para > 1)
@@ -702,7 +725,11 @@ NB_MODULE(coot_headless_api, m) {
     .def("get_atom_using_cid",
          &molecules_container_t::get_atom_using_cid,
          nb::arg("imol"), nb::arg("atom_cid"),
-         get_docstring_from_xml("get_atom").c_str())
+         get_docstring_from_xml("get_atom_using_cid").c_str())
+    .def("get_atom_overlaps",
+         &molecules_container_t::get_atom_overlaps,
+         nb::arg("imol"),
+         get_docstring_from_xml("get_atom_overlaps").c_str())
     .def("get_atom_overlap_score",
          &molecules_container_t::get_atom_overlap_score,
 	 nb::arg("imol"),
@@ -843,6 +870,10 @@ NB_MODULE(coot_headless_api, m) {
          &molecules_container_t::get_molecule_name,
          nb::arg("imol"),
          get_docstring_from_xml("get_molecule_name").c_str())
+    .def("get_molecule_selection_as_json",
+         &molecules_container_t::get_molecule_selection_as_json,
+         nb::arg("imol"), nb::arg("cid"),
+         get_docstring_from_xml("get_molecule_selection_as_json").c_str())
     .def("get_monomer",
          &molecules_container_t::get_monomer,
          nb::arg("monomer_name"),
@@ -878,10 +909,6 @@ NB_MODULE(coot_headless_api, m) {
          &molecules_container_t::get_octahemisphere,
          nb::arg("n_divisions"),
          get_docstring_from_xml("get_octahemisphere").c_str())
-    .def("get_overlaps",
-         &molecules_container_t::get_overlaps,
-         nb::arg("imol"),
-         get_docstring_from_xml("get_overlaps").c_str())
     .def("get_overlaps_for_ligand",
          &molecules_container_t::get_overlaps_for_ligand,
          nb::arg("imol"), nb::arg("ligand_cid"),
@@ -903,14 +930,15 @@ NB_MODULE(coot_headless_api, m) {
     .def("get_rama_plot_restraints_weight",
          &molecules_container_t::get_rama_plot_restraints_weight,
          get_docstring_from_xml("get_rama_plot_restraints_weight").c_str())
-    .def("get_rdkit_mol",
-         &molecules_container_t::get_rdkit_mol,
-         nb::arg("res_name"), nb::arg("imol_enc"),
-         get_docstring_from_xml("get_rdkit_mol").c_str())
-    .def("get_rdkit_mol_shared",
-         &molecules_container_t::get_rdkit_mol_shared,
-         nb::arg("res_name"), nb::arg("imol_enc"),
-         get_docstring_from_xml("get_rdkit_mol_shared").c_str())
+    // maybe these will work in future - or maybe just delete them
+    // .def("get_rdkit_mol",
+    //      &molecules_container_t::get_rdkit_mol,
+    //      nb::arg("res_name"), nb::arg("imol_enc"),
+    //      get_docstring_from_xml("get_rdkit_mol").c_str())
+    // .def("get_rdkit_mol_shared",
+    //      &molecules_container_t::get_rdkit_mol_shared,
+    //      nb::arg("res_name"), nb::arg("imol_enc"),
+    //      get_docstring_from_xml("get_rdkit_mol_shared").c_str())
     .def("get_rdkit_mol_pickle_base64",
          &molecules_container_t::get_rdkit_mol_pickle_base64,
          nb::arg("res_name"), nb::arg("imol_enc"),

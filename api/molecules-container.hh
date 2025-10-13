@@ -658,9 +658,9 @@ public:
    //! @param residue_name the residue name
    //! @param imol_enc the molecule for the ligand (typically is imol_enc_any)
    //! @return an RDKit RDMol.
-   RDKit::RWMol get_rdkit_mol(const std::string &residue_name, int imol_enc);
+   // RDKit::RWMol get_rdkit_mol(const std::string &residue_name, int imol_enc);
 
-   std::shared_ptr<RDKit::RWMol> get_rdkit_mol_shared(const std::string &residue_name, int imol_enc);
+   // std::shared_ptr<RDKit::RWMol> get_rdkit_mol_shared(const std::string &residue_name, int imol_enc);
 
    //! get the 64base-encoded pickled string that represents the given residue/ligand name
    //!
@@ -884,6 +884,12 @@ public:
    //! @param cid is the atom selection CID e.g "//A/15/OH" (atom OH in residue 15 of chain A)
    //! @param occ_new is the new occupancy
    void set_occupancy(int imol, const std::string &cid, float occ_new);
+
+   //! Get atom selection as json
+   //!
+   //! @param imol is the model molecule index
+   //! @param cid is the atom selection CID e.g "//A/15/OH" (atom OH in residue 15 of chain A)
+   std::string get_molecule_selection_as_json(int imol, const std::string &cid) const;
 
    //! Write a PNG for the given compound_id.
    //!
@@ -2872,9 +2878,11 @@ public:
 
    //! Get Atom Overlaps
    // not const because it can dynamically add dictionaries
+   //! This function used to be called get_overlaps()
+   //!
    //! @param imol is the model molecule index
    //! @return a vector of atom overlap objects
-   std::vector<coot::plain_atom_overlap_t> get_overlaps(int imol);
+   std::vector<coot::plain_atom_overlap_t> get_atom_overlaps(int imol);
 
    //! Get the atom overlap score
    //!

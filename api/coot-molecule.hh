@@ -622,6 +622,8 @@ namespace coot {
       // here res-name might be HOH or DUM
       int insert_waters_into_molecule(const minimol::molecule &water_mol, const std::string &res_name);
 
+      std::string get_molecule_selection_as_json(const std::string &cid) const;
+
       // ----------------------- model utils
 
      //! get missing residue ranges
@@ -963,7 +965,7 @@ namespace coot {
 					     float dist_max) const;
 
       //! not const because it can dynamically add dictionaries
-      std::vector<plain_atom_overlap_t> get_overlaps(protein_geometry *geom_p);
+      std::vector<plain_atom_overlap_t> get_atom_overlaps(protein_geometry *geom_p);
 
       //! get the atom overlap
       float get_atom_overlap_score(protein_geometry *geom_p) const;

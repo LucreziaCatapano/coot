@@ -207,24 +207,26 @@ graphics_info_t::setup_key_bindings() {
              };
 
    auto l7 = []() {
-                int imol_scroll = graphics_info_t::scroll_wheel_map;
-                if (graphics_info_t::is_valid_map_molecule(imol_scroll))
+                graphics_info_t g;
+                int imol_scroll = g.intelligent_get_scroll_wheel_map();
+                if (graphics_info_t::is_valid_map_molecule(imol_scroll)) {
                    graphics_info_t::molecules[imol_scroll].pending_contour_level_change_count--;
+                }
                 if (graphics_info_t::glareas.size() > 0)
                    int contour_idle_token = g_idle_add(idle_contour_function, graphics_info_t::glareas[0]);
-                graphics_info_t g;
                 g.set_density_level_string(imol_scroll, graphics_info_t::molecules[imol_scroll].contour_level);
                 graphics_info_t::display_density_level_this_image = 1;
                 return gboolean(TRUE);
              };
 
    auto l8 = []() {
-                int imol_scroll = graphics_info_t::scroll_wheel_map;
-                if (graphics_info_t::is_valid_map_molecule(imol_scroll))
+                graphics_info_t g;
+                int imol_scroll = g.intelligent_get_scroll_wheel_map();
+                if (graphics_info_t::is_valid_map_molecule(imol_scroll)) {
                    graphics_info_t::molecules[imol_scroll].pending_contour_level_change_count++;
+                }
                 if (graphics_info_t::glareas.size() > 0)
                    int contour_idle_token = g_idle_add(idle_contour_function, graphics_info_t::glareas[0]);
-                graphics_info_t g;
                 g.set_density_level_string(imol_scroll, graphics_info_t::molecules[imol_scroll].contour_level);
                 graphics_info_t::display_density_level_this_image = 1;
                 return gboolean(TRUE);
@@ -639,6 +641,7 @@ graphics_info_t::setup_key_bindings() {
    kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_g,      key_bindings_t(l5, "go to blob")));
    kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_h,      key_bindings_t(l36, "Triple Refine with Auto-accept")));
    kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_i,      key_bindings_t(l6, "spin")));
+   kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_j,      key_bindings_t(l44, "Auto-fit Rotamer"))); // where it used to be
    kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_plus,   key_bindings_t(l8, "increase contour level")));
    kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_equal,  key_bindings_t(l8, "increase contour level")));
    kb_vec.push_back(std::pair<keyboard_key_t, key_bindings_t>(GDK_KEY_minus,  key_bindings_t(l7, "decrease contour level")));
@@ -725,7 +728,6 @@ graphics_info_t::setup_key_bindings() {
 
    auto ldr = [] () {
 
-      std::cout << "ldr start --------------------------------------" << std::endl;
       graphics_info_t g;
       std::pair<bool, std::pair<int, coot::atom_spec_t> > aa_spec_pair = active_atom_spec();
       if (aa_spec_pair.first) {
@@ -740,7 +742,6 @@ graphics_info_t::setup_key_bindings() {
             g.molecules[imol].delete_residue(residue_spec);
          }
       }
-      std::cout << "ldr done --------------------------------------" << std::endl;
       return gboolean(TRUE);
    };
    key_bindings_t delete_residue_key_binding(ldr, "Delete Residue");
@@ -755,6 +756,15 @@ graphics_info_t::setup_key_bindings() {
    key_bindings_t add_water_key_binding(law, "Add Water");
    std::pair<keyboard_key_t, key_bindings_t> paw(keyboard_key_t(GDK_KEY_w, true), add_water_key_binding);
    kb_vec.push_back(paw);
+
+   // 2025-10-03-PE Thanks for the reminder AAAAdragon.
+   auto l_go_to_lig = [] {
+      go_to_ligand();
+      return gboolean(TRUE);
+   };
+   key_bindings_t go_to_ligand_binding(l_go_to_lig, "Go To Ligand");
+   std::pair<keyboard_key_t, key_bindings_t> pgl(keyboard_key_t(GDK_KEY_l, true), go_to_ligand_binding);
+   kb_vec.push_back(pgl);
 
    // Direction is either +1 or -1 (in or out)
    //

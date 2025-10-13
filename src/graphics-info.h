@@ -48,6 +48,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <utils/ctpl.h>
+#include <coot-utils/inchikey-store.hh>
 
 #ifdef USE_MOLECULES_TO_TRIANGLES
 // #include <MoleculesToTriangles/CXXClasses/RendererGLSL.hpp>
@@ -1032,6 +1033,7 @@ public:
    //
    static int scroll_wheel_map;
    void update_scroll_wheel_map_on_molecule_close();
+   int intelligent_get_scroll_wheel_map() const;
 
    void contour_level_scroll_scrollable_map(int direction);
 
@@ -4741,6 +4743,9 @@ string   static std::string sessionid;
    static std::string map_partition_results_state_string; // "Done A Chain" etc.
 
    static unsigned int logging_line_index;
+
+   static coot::inchikey_store_t inchikey_store;
+   static void read_inchikeys();
 
    // add a pumpkin as a graphics object and draw it.
    void pumpkin();

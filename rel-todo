@@ -1,7 +1,87 @@
-
 --- Items ---
 
+o talk to Bernie about chapi
+* Done
+
+o move the download from COD to XDG.
+
+o make molecules to triangles compile without coot libs
+  then split the build of libcootapi to link then
+  m2t library.
+* Done!
+
+o check chemistry - extra hydrogen atom when making a link.
+  Example? Reported by Clemens?
+
+o Clemens: edit the alt conf-ids interactively.
+
+o Where did we get to with alt conf colouring or selection (in Coot)
+  e.g. untangle chalenge challenge. Look at alt-conf-switcher.py
+
+o make some inchi keys for the G* dictionaries. Using my parser and making
+  rdkit molecules - do they match the inchi keys from the wwwPDB CCD?
+
+o make a function: to update bonds without updating bonding.
+  Useful for dynamics.
+
+o atom ids in output from libcootapi/chapi when gemmi is used.
+  We need label_atom_id and label_segid (not the auth version of those)
+
+o moorhen: make a useful interface for atom overlaps
+
+o coot: let's get bansu integrated - for those who don't have acedrg
+
+o where are with with the panda inspect interface?
+
+o when refining carbohydrate, don't find links by distance - use residue numbers and links.
+
+o libcootapi: make a get-atom-overlaps() function that is useful from Moorhen.
+
+o html anchors so that svg (flev) from coot can be used for interactivity in moorhen.
+
+o Coot: 2 (EM?) maps - don't scroll the map that is not displayed
+
+o Moorhen: get the map for the given molecule when using EM structure
+
+o Friday: de-dust
+o Next friday: density correlation for a residue cid
+o 2-weeks friday: Goodsell colouring
+
+o libcootapi/moorhen: density correlation for a cid
+
+o libcootapi/moorhen: renumber residues function
+
+o libcootapi add a mask for the fourier shell
+
+o libcootapi: using model and gaussian surface export a mask soft edge (0.0 to 1.0 in floats)
+
+o moorhen/lhasa: use bansu for link generation
+
+o coot: 
+  contour level for map 1 is 0.187223 pending
+  tell me what the step size is also.
+
+o update build-it-3-3 to the latest version of the RDKit: 2025_03_6
+
+o dot and comma don't work for rotamers
+
+o install cctbx (conda install) to get mmtbx.probe2 to get new dots.
+
+o molprobity reduce has updated the hydrogen bond distance (it seems?)
+  libcootapi should follow - actually, use distances in new monomer library.
+
+o For MMRRCC: use a different residue range length
+
+o how to represent missing ligand atoms?
+  Draw them in black with a white outline?
+
+o Lucrezia: table of bond and angles and distances vs model table in moorhen
+
+o Moorhen: auto-fit-rotamer without map.
+
 o Moorhen: key binding for "Nice" bonds.
+
+o Delete link in Coot
 
 o Moorhen: environment distances to symmetry-related molecules.
 
@@ -15,13 +95,17 @@ o Moorhen/libcootapi test fsc with more map pairs
 o Coot: go to atom dialog and use numpad enter key. Needs a computer
   with a numpad!
 
-o Coot: bring carboydrate, in WTA mode, to the gui
+o Coot: bring carbohydrate, in WTA mode, to the gui
   i.e. 4d514356326ca57852d349f9a2e34b7815688673 needs user interface.
 
 o ligand code KCX: make pdb from chapi and read it into moorhen - with hydrogen atoms
   In Lucy's example some hydrogen atoms were disconnected.
 
 o add_molecular_symmetry add this to moorhen/libcootapi
+
+o calculate the bonds up-front and use a container that can generate the bond
+  and atom indices from a mol or atom selection that has updated atom positons
+  (from dynamics, say).
 
 o set status 0 for more than 100,000 (or so?) vertices
   Make an api function for the user to set the max vertices

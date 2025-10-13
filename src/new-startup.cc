@@ -757,7 +757,7 @@ new_startup_create_splash_screen_window() {
    GtkWidget *splash_screen_window = gtk_window_new();
    gtk_window_set_title(GTK_WINDOW(splash_screen_window), "Coot-Splash");
    gtk_window_set_decorated(GTK_WINDOW(splash_screen_window), FALSE);
-   GtkWidget *picture = create_local_picture("coot-1.1.18.png");
+   GtkWidget *picture = create_local_picture("coot-1.1.19.png");
 
    gtk_widget_set_hexpand(GTK_WIDGET(picture),TRUE);
    gtk_widget_set_vexpand(GTK_WIDGET(picture),TRUE);
@@ -1271,6 +1271,9 @@ int new_startup(int argc, char **argv) {
 
    // delete activate_data; Nope. This is used in new_startup_application_activate.
    // Delete it there if you want to delete it.
+
+   // read in inchikeys - is this the right place for this?
+   graphics_info_t::read_inchikeys();
 
    int status = g_application_run(G_APPLICATION(app), 1, argv);
    std::cout << "--- g_application_run() returns with status " << status << std::endl;
