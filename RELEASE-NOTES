@@ -1,3 +1,33 @@
+  Release Notes for 1.1.20
+
+ o CHANGE:  XDG is used for the download of COD entries
+
+ o FEATURE: "New Residue Type" now available in Add Other
+            Solvents dialog.
+
+ o FEATURE: key-binding for Triple-Refine AA (H)
+
+ o FEATURE: key-binding for Undo Symmetry View (Shift V)
+
+ o FEATURE: key-binding for Keyboard Mutate (Shift-M)
+
+ o FEATURE: now Open Dialogs track the latest used directory
+
+ o FEATURE: on initial startup, Coot will ask if left-mouse
+            should be used for view rotation
+
+ o BUG-FIX: fix control of display control dialog in the
+            state script
+
+ o BUG-FIX: the "No Unmodelled blobs" dialog tided up
+
+ o BUG-FIX: get-monomer dialog activate now closes the drop-down.
+
+Chapi/libcootapi
+
+ o  NEW FUNCTION: get_mmrrcc()
+
+-----
 
   Release Notes for 1.1.19
 
@@ -12,7 +42,7 @@
 
  o CHANGE:  Assign and Associate Sequence menu item functions now added back
 
- o CHANGE:  Improve the scrolling of the map contour level when the 
+ o CHANGE:  Improve the scrolling of the map contour level when the
             nominated map is not displayed
 
  o BUG-FIX: Menu items with targets don't work on macOS (I don't know why)

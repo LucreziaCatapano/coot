@@ -96,8 +96,13 @@ void on_coords_filechooser_dialog_response_gtk4(GtkDialog *dialog,
                      handle_read_draw_molecule_with_recentre(file_name, 0); // no recentre
                }
             }
+
+            std::string file_dir = coot::util::file_name_directory(file_name);
+            graphics_info_t g;
+            g.set_directory_for_filechooser_string(file_dir);
          }
       }
+
    }
    gtk_window_close(GTK_WINDOW(dialog));
    graphics_info_t::graphics_grab_focus();
@@ -183,6 +188,8 @@ void open_coordinates_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                                                    NULL);
    gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 
+   set_directory_for_filechooser(dialog);
+
    // void gtk_file_chooser_add_choice (GtkFileChooser* chooser,
    //                                   const char* id,
    //                                   const char* label,
@@ -251,6 +258,8 @@ void open_dataset_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    gtk_file_filter_add_pattern(filterselect, "*.mtz");
    gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filterselect);
    gtk_widget_set_visible(dialog, TRUE);
+
+   set_directory_for_filechooser(dialog);
 }
 
 void auto_open_mtz_action(G_GNUC_UNUSED GSimpleAction *simple_action,
@@ -281,8 +290,10 @@ void auto_open_mtz_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                                                    ("_Open"), GTK_RESPONSE_ACCEPT,
                                                    NULL);
 
+   // this does set_directory_for_filechooser()
    GError *error = NULL;
    std::string dir = g.get_directory_for_filechooser();
+   std::cout << "DEBUG:: ****************** directory for file chooser: " << dir << std::endl;
    if (coot::is_directory_p(dir)) {
       GFile *f_dir = g_file_new_for_path(dir.c_str());
       gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), f_dir, &error);
@@ -326,6 +337,8 @@ void open_map_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    gtk_file_chooser_add_choice(GTK_FILE_CHOOSER(dialog), "is-diff-map", "Is Difference Map", NULL, NULL);
 
    g_signal_connect(dialog, "response", G_CALLBACK(on_map_filechooser_dialog_response_gtk4), NULL);
+
+   set_directory_for_filechooser(dialog);
 
    GtkFileFilter *filterselect = gtk_file_filter_new();
    gtk_file_filter_add_pattern(filterselect, "*.map");
@@ -429,7 +442,6 @@ void get_monomer_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    GtkWidget *entry = widget_from_builder("get_monomer_entry");
    gtk_widget_grab_focus(entry);
    gtk_widget_set_visible(frame, TRUE);
-   graphics_info_t::graphics_grab_focus();
 }
 
 
@@ -3311,7 +3323,7 @@ void add_other_solvent_molecules_action(G_GNUC_UNUSED GSimpleAction *simple_acti
 	    // no need to add buttons, it has been done
 	 } else {
 	    std::vector<std::string> types = {"EDO", "GOL", "DMS", "ACT", "MPD", "CIT", "SO4",
-					      "PO4", "TRS", "TAM", "PEG", "PG4", "PE8",
+					      "PO4", "NO3", "TRS", "TAM", "PEG", "PG4", "PE8",
 					      "EBE", "BTB"};
 	    int imol_enc = coot::protein_geometry::IMOL_ENC_ANY;
 	    int cif_read_number = 50;
@@ -3504,6 +3516,16 @@ fill_partial_residues_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                              G_GNUC_UNUSED GVariant *parameter,
                              G_GNUC_UNUSED gpointer user_data) {
 
+   std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = active_atom_spec();
+   if (pp.first) {
+      graphics_info_t g;
+      int imol = pp.second.first;
+      int imol_refinement_map = g.Imol_Refinement_Map();
+      if (is_valid_map_molecule(imol_refinement_map)) {
+         g.molecules[imol].fill_partial_residues(g.Geom_p(), imol_refinement_map);
+      }
+   }
+   graphics_info_t::graphics_draw();
    graphics_info_t::graphics_grab_focus();
 }
 
@@ -3511,6 +3533,22 @@ void phosphorylate_this_residue_action(G_GNUC_UNUSED GSimpleAction *simple_actio
                                        G_GNUC_UNUSED GVariant *parameter,
                                        G_GNUC_UNUSED gpointer user_data) {
 
+   std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = active_atom_spec();
+   if (pp.first) {
+      graphics_info_t g;
+      int imol = pp.second.first;
+      int imol_refinement_map = g.Imol_Refinement_Map();
+      if (is_valid_map_molecule(imol_refinement_map)) {
+         coot::residue_spec_t res_spec(pp.second.second);
+         std::string chain_id = res_spec.chain_id;
+         int res_no = res_spec.res_no;
+         std::string res_name = g.molecules[imol].get_residue_name(res_spec);
+         if (res_name == "TYR") g.molecules[imol].mutate_by_overlap(chain_id, res_no, "PTR");
+         if (res_name == "SER") g.molecules[imol].mutate_by_overlap(chain_id, res_no, "SEP");
+         if (res_name == "THR") g.molecules[imol].mutate_by_overlap(chain_id, res_no, "TPO");
+      }
+   }
+   graphics_info_t::graphics_draw();
    graphics_info_t::graphics_grab_focus();
 }
 
@@ -4054,6 +4092,7 @@ environment_distances_action(G_GNUC_UNUSED GSimpleAction *simple_action,
 
    GtkWidget *widget = widget_from_builder("environment_distance_dialog");
    fill_environment_widget(widget);
+   set_transient_for_main_window(widget);
    gtk_widget_set_visible(widget, TRUE);
    graphics_info_t::graphics_grab_focus();
 }

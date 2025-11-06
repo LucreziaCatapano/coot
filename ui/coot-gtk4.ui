@@ -7416,8 +7416,8 @@ Do you want to continue?
                         <property name="active">1</property>
                         <items>
                                <item>NAG-NAG-BMA</item>
-                               <!-- 2025-10-06-PE building/refinement of branches doesn't work properly ATM
                                <item>High Mannose</item>
+                               <!-- 2025-10-06-PE building/refinement of branches doesn't work properly ATM
                                <item>Hybrid</item>
                                <item>Mammalian Biantennary</item>
                                <item>Plant Biantennary</item>
@@ -7786,6 +7786,45 @@ Do you want to continue?
                             </style>
                           </object>
                         </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+
+            <child type="overlay">
+              <object class="GtkFrame" id="keyboard_mutate_frame">
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <property name="visible">False</property>
+                <property name="margin-bottom">5</property>
+                <property name="margin-end">5</property>
+                <property name="margin-start">5</property>
+                <property name="margin-top">5</property>
+
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">2</property>
+
+                    <child>
+                      <object class="GtkLabel">
+                        <property name="label" translatable="yes">Mutate to Type: (single-letter-code)</property>
+                        <property name="justify">center</property>
+                        <property name="margin-start">4</property>
+                        <property name="margin-end">4</property>
+                        <property name="margin-top">4</property>
+                        <property name="margin-bottom">4</property>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="GtkEntry" id="keyboard_mutate_entry">
+                        <property name="can-focus">1</property>
+                        <property name="primary-icon-tooltip-text" translatable="yes">Type here the single letter code of the residue type - or press &quot;Esc&quot; to dismiss this dialog</property>
+                        <signal name="activate" handler="on_keyboard_mutate_entry_activate" swapped="no"/>
+                        <signal name="changed" handler="on_keyboard_mutate_entry_changed" swapped="no"/>
                       </object>
                     </child>
                   </object>
@@ -10818,10 +10857,19 @@ Do you want to continue?
 	<child>
 	  <object class="GtkButton" id="add_other_solvent_molecules_new_residue_type_button">
 	    <property name="label">Add a New Residue Type...</property>
-            <property name="visible">False</property>
+            <property name="visible">True</property>
 	    <signal name="clicked" handler="on_add_other_solvent_molecules_new_residue_type_button_clicked" swapped="no"/>
 	  </object>
 	</child>
+        <child>
+              <object class="GtkEntry" id="add_other_solvent_molecules_new_residue_type_entry">
+                <property name="can-focus">1</property>
+                <property name="max-width-chars">20</property>
+                <property name="text"></property>
+                <property name="visible">False</property>
+                <signal name="activate" handler="on_add_other_solvent_molecules_new_residue_type_entry_activate"/>
+              </object>
+         </child>
 
         <child>
           <object class="GtkSeparator">
@@ -11192,23 +11240,7 @@ l              <object class="GtkComboBox" id="ramachandran_plot_molecule_choose
     <child type="titlebar">
     </child>
   </object>
-  <object class="GtkDialog" id="keyboard_mutate_dialog">
-    <property name="deletable">0</property>
-    <child>
-      <object class="GtkBox">
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child>
-          <object class="GtkEntry" id="keyboard_mutate_entry">
-            <property name="can-focus">1</property>
-            <property name="primary-icon-tooltip-text" translatable="yes">Type here the single letter code of the residue type - or press &quot;Esc&quot; to dismiss this dialog</property>
-          </object>
-        </child>
-      </object>
-    </child>
-    <child type="titlebar">
-    </child>
-  </object>
+
   <object class="GtkDialog" id="least_squares_dialog">
     <property name="title" translatable="yes">Least Squares Fit</property>
     <property name="hide-on-close">true</property>
@@ -11502,7 +11534,6 @@ l              <object class="GtkComboBox" id="ramachandran_plot_molecule_choose
   <object class="GtkDialog" id="ligand_big_blob_dialog">
     <property name="height-request">250</property>
     <property name="title" translatable="yes">Coot: Unmodelled blobs of density</property>
-    <signal name="destroy" handler="on_ligand_big_blob_dialog_destroy" swapped="no"/>
     <child>
       <object class="GtkBox" id="dialog-vbox36">
         <property name="orientation">vertical</property>
@@ -11547,7 +11578,7 @@ density (too big to be waters):
           </object>
         </child>
 
-        <child type="action">
+        <child>
           <object class="GtkButton" id="ligand_big_blob_dismiss_button">
             <property name="label" translatable="yes">  Dismiss  </property>
             <property name="can-focus">1</property>
@@ -11562,8 +11593,6 @@ density (too big to be waters):
 
       </object>
     </child>
-    <child type="titlebar">
-    </child>
   </object>
 
   <object class="GtkDialog" id="ligand_no_blobs_dialog">
@@ -11571,17 +11600,7 @@ density (too big to be waters):
     <child>
       <object class="GtkBox" id="dialog-vbox62">
         <property name="orientation">vertical</property>
-         <child type="action">
-              <object class="GtkBox" id="hbox106">
-                <child>
-                  <object class="GtkButton" id="ligand_no_blobs_OK_button">
-                    <property name="label" translatable="yes">   OK!   </property>
-                    <property name="use-underline">1</property>
-                    <signal name="clicked" handler="on_ligand_no_blobs_OK_button_clicked" swapped="no"/>
-                  </object>
-                </child>
-              </object>
-        </child>
+
         <child>
           <object class="GtkFrame" id="frame117">
             <child>
@@ -11589,7 +11608,7 @@ density (too big to be waters):
                 <property name="label" translatable="yes">
 
 
-     Coot found no unexplained blobs
+      Coot found no unexplained blobs      
 
 
                 </property>
@@ -11598,9 +11617,25 @@ density (too big to be waters):
             </child>
           </object>
         </child>
+
+        <child>
+          <object class="GtkBox" id="hbox106">
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
+            <property name="halign">end</property>
+            <child>
+              <object class="GtkButton" id="ligand_no_blobs_OK_button">
+                    <property name="label" translatable="yes">   OK!   </property>
+                    <property name="use-underline">1</property>
+                    <signal name="clicked" handler="on_ligand_no_blobs_OK_button_clicked" swapped="no"/>
+              </object>
+            </child>
+          </object>
+        </child>
+
       </object>
-    </child>
-    <child type="titlebar">
     </child>
   </object>
 
@@ -18019,6 +18054,73 @@ Move a copy?</property>
     </child>
   </object>
 
+  <object class="GtkDialog" id="first-startup-dialog">
+    <property name="title" translatable="yes">Coot: Configure Mouse</property>
+    <property name="default-width">500</property>
+    <child>
+      <object class="GtkBox" id="first_startup_dialog_vbox_internal">
+        <property name="orientation">vertical</property>
+        <property name="spacing">2</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="label" translatable="yes">First-time start-up:</property>
+            <property name="justify">center</property>
+            <property name="use-markup">1</property>
+            <property name="margin-top">12</property>
+            <property name="margin-bottom">12</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkLabel">
+            <property name="label" translatable="yes">Which mouse button should be used for view rotation?</property>
+            <property name="justify">left</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">18</property>
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkSeparator">
+          </object>
+        </child>
+
+        <child>
+          <object class="GtkBox">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="halign">end</property>
+            <property name="margin-end">6</property>
+            <property name="margin-start">4</property>
+            <property name="margin-top">6</property>
+            <property name="margin-bottom">6</property>
+            <child>
+              <object class="GtkButton" id="first_startup_cancel_button">
+                <property name="label" translatable="yes">Cancel</property>
+                <signal name="clicked" handler="on_first_startup_cancel_button_clicked" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="first_startup_use_left_button">
+                <property name="label" translatable="yes">Left</property>
+                <signal name="clicked" handler="on_first_startup_use_left_button_clicked" />
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="first_startup_use_right_button">
+                <property name="label" translatable="yes">Right</property>
+                <signal name="clicked" handler="on_first_startup_use_right_button_clicked" />
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+
+
   <object class="GtkDialog" id="hole_dialog">
     <property name="title" translatable="yes">Coot: HOLE</property>
     <signal name="response" handler="on_hole_dialog_response" swapped="no"/>
@@ -18369,13 +18471,32 @@ Move a copy?</property>
                 <property name="title" translatable="yes">Reject Moving Atoms</property>
               </object>
             </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;Shift&gt;R</property>
+                <property name="title" translatable="yes">Sphere Refine</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">&lt;Shift&gt;E</property>
+                <property name="title" translatable="yes">Chain Refine</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="accelerator">H</property>
+                <property name="title" translatable="yes">Triple-Refine Auto-Accept</property>
+              </object>
+            </child>
 
           </object>
         </child>
+
         <child>
           <object class="GtkShortcutsGroup">
             <property name="title">Building Functions</property>
-            
+
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">y</property>
@@ -18398,18 +18519,6 @@ Move a copy?</property>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;Shift&gt;K</property>
                 <property name="title" translatable="yes">Delete Side-chain</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="accelerator">&lt;Shift&gt;R</property>
-                <property name="title" translatable="yes">Sphere Refine</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkShortcutsShortcut">
-                <property name="accelerator">&lt;Shift&gt;E</property>
-                <property name="title" translatable="yes">Chain Refine</property>
               </object>
             </child>
             <child>

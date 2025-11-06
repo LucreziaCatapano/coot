@@ -186,6 +186,7 @@ new_startup_realize(GtkWidget *gl_area) {
    g.setup_draw_for_bad_nbc_atom_pair_markers();
    g.setup_draw_for_chiral_volume_outlier_markers();
    g.setup_draw_for_anchored_atom_markers_init();
+   g.setup_draw_for_unhappy_atom_markers();
    g.setup_lines_mesh_for_proportional_editing();
    g.lines_mesh_for_hud_lines.set_name("lines mesh for fps graph");
    unsigned int frame_time_history_list_max_n_elements = 500;
@@ -1011,15 +1012,15 @@ new_startup_application_activate(GtkApplication *application,
 
          g_print("DEBUG:: Drop performed!\n");
          GType type = G_VALUE_TYPE(value);
-         std::cout << "DEBUG:: type is of type " << type << std::endl;
+         std::cout << "DEBUG:: value is of type " << type << std::endl;
 
          if (G_VALUE_HOLDS(value, G_TYPE_FILE)) {
-            std::cout << "!!!!!!!!!!!!! holds a file!" << std::endl;
+            std::cout << "!!!!!!!!!!!!! value holds a file!" << std::endl;
             GFile *file = (GFile *)g_value_get_object(value);
             if (file) {
-               std::cout << "got file " << file << std::endl;
+               std::cout << "DEBUG:: got file: " << file << std::endl;
                const gchar *filename = g_file_get_path(file);
-               std::cout << "got filename " << filename << std::endl;
+               std::cout << "DEBUG:: got filename: " << filename << std::endl;
                handle_drag_and_drop_string(filename);
                status = TRUE;
             } else {
@@ -1079,6 +1080,7 @@ new_startup_application_activate(GtkApplication *application,
          } else {
             std::cout << "not type G_TYPE_STRING! " << std::endl;
          }
+         std::cout << "DEBUG:: returning from on_drop_performed()." << std::endl;
          return status;
       };
       g_signal_connect(drop_target, "drop", G_CALLBACK(on_drop_performed), NULL);
@@ -1090,7 +1092,7 @@ new_startup_application_activate(GtkApplication *application,
       // if (menu_item)
       // gtk_label_set_text(GTK_LABEL(menu_item), "Screenshot Not Available");
 #endif
-      
+
       // ---------------------  -----------------------
 
       gtk_widget_grab_focus(gl_area); // at the start, fixes focus problem
@@ -1107,6 +1109,28 @@ new_startup_application_activate(GtkApplication *application,
 
       // now we are ready to show graphical objects made from reading files:
       handle_command_line_data(activate_data->cld);
+
+      // 20251019-PE is this the first time Coot-1 has been started?
+      {
+         bool show_first_startup_dialog = true;
+         xdg_t xdg;
+         std::filesystem::path state_home = xdg.get_state_home();
+         if (std::filesystem::exists(state_home)) {
+            std::filesystem::path state_py = state_home / "0-coot.state.py";
+            if (std::filesystem::exists(state_py)) {
+               show_first_startup_dialog = false;
+            }
+         }
+         if (show_first_startup_dialog) {
+            GtkWidget *dialog = widget_from_builder("first-startup-dialog");
+            GtkWidget *main_window_widget = graphics_info_t::get_main_window();
+            if (main_window_widget) {
+               GtkWindow *main_window = GTK_WINDOW(main_window_widget);
+               gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
+            }
+            gtk_widget_set_visible(dialog, TRUE);
+         }
+      }
 
       // load_tutorial_model_and_data();
       delete activate_data;

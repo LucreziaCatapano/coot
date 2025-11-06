@@ -22,8 +22,6 @@
  */
 
 
-#include "Python.h"
-
 #include <iostream>
 #include <gtk/gtk.h>
 
@@ -36,18 +34,11 @@
 
 // put preferences functions into their own file, not here.
 #include "coot-preferences.h"
-#include "c-interface-preferences.h"
 #include "rotate-translate-modes.hh"
-#include "restraints-editor-c.h"
-#include "generic-display-objects-c.h"
-#include "c-interface-refmac.h"
-#include "gtk-widget-conversion-utils.h"
-#include "curlew.h"
 #include "read-phs.h"
 #include "gtk-manual.h"
 #include "c-interface-refine.h"
 #include "widget-from-builder.hh"
-#include "read-molecule.hh" // 20230621-PE now with std::string args
 
 // this from callbacks.h (which I don't want to include here)
 typedef const char entry_char_type;
@@ -637,6 +628,7 @@ on_get_monomer_ok_button_clicked(GtkButton       *button,
    }
    GtkWidget *frame = widget_from_builder("get_monomer_frame");
    gtk_widget_set_visible(frame, FALSE);
+   graphics_info_t::graphics_grab_focus();
 }
 
 
@@ -1759,7 +1751,6 @@ on_glyco_wta_fit_button_clicked(G_GNUC_UNUSED GtkButton       *button,
    GtkWidget *combobox = widget_from_builder("glyco_wta_glycosylation_name_comboboxtext");
    graphics_info_t g;
    std::string t = g.get_active_label_in_comboboxtext(GTK_COMBO_BOX_TEXT(combobox));
-   std::cout << "================ t: " << t << std::endl;
    std::pair<int, mmdb::Atom *> aa = g.get_active_atom();
    int imol = aa.first;
    if (is_valid_model_molecule(imol)) {
