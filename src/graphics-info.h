@@ -2549,6 +2549,8 @@ public:
 						       short int lang_flag) const;
    void quick_save();
 
+   // and the generalization of that: - display the label overlay for 2 seconds
+   static void ephemeral_overlay_label(const std::string &overlay_label);
 
    static std::string save_state_file_name;
 
@@ -2945,6 +2947,7 @@ public:
    static Texture texture_for_unhappy_atom_markers;
    static TextureMesh tmesh_for_unhappy_atom_markers;
    static void add_unhappy_atom_marker(int imol, const coot::atom_spec_t &atom_spec);
+   static void remove_all_unhappy_atom_markers();
 
    static std::vector<meshed_particle_container_t> meshed_particles_for_gone_diegos;
    static void setup_draw_for_particles_for_new_gone_diegos(const std::vector<glm::vec3> &positions);
@@ -2961,6 +2964,11 @@ public:
    static TextureMesh tmesh_for_bad_nbc_atom_pair_markers;
    static std::vector<glm::vec3> bad_nbc_atom_pair_marker_positions;
    const unsigned int draw_count_max_for_bad_nbc_atom_pair_markers = 100; // needed?
+
+   static void setup_draw_for_bad_nbc_atom_pair_dashed_line();
+   static void update_bad_nbc_atom_pair_dashed_lines();
+   static Mesh bad_nbc_atom_pair_dashed_line; // instanced mesh
+   static void draw_bad_nbc_atom_pair_dashed_lines(unsigned int pass_type);
 
    void setup_draw_for_chiral_volume_outlier_markers();
    static void draw_chiral_volume_outlier_markers(unsigned int pass_type);
@@ -4415,23 +4423,34 @@ string   static std::string sessionid;
 
    // these are "setup" by the function that starts them
    static LinesMesh lines_mesh_for_identification_pulse;
-   static LinesMesh lines_mesh_for_delete_item_pulse;
+   static LinesMesh lines_mesh_for_generic_pulse; // loop through generic_pulse_centres
    static glm::vec3 identification_pulse_centre;
-   static void draw_identification_pulse();
+   static void draw_at_screen_centre_pulse(); // green sonar ping
+   // these are variations of the (typically) multi-centre identification pulse.
+   static void draw_generic_pulses();
    static void draw_invalid_residue_pulse();
    static void draw_delete_item_pulse();
-   static std::vector<glm::vec3> delete_item_pulse_centres;
+   static std::vector<glm::vec3> generic_pulse_centres;
    std::vector<glm::vec3> residue_to_positions(mmdb::Residue *residue_p) const;
    std::vector<glm::vec3> residue_to_side_chain_positions(mmdb::Residue *residue_p) const;
    void setup_delete_item_pulse(mmdb::Residue *residue_p);
    void setup_delete_residues_pulse(const std::vector<mmdb::Residue *> &residues);
    void setup_invalid_residue_pulse(mmdb::Residue *residue_p);
-   static gboolean invalid_residue_pulse_function(GtkWidget *widget,  // return the continue-status
-                                                  GdkFrameClock *frame_clock,
-                                                  gpointer data);
+   static void pulse_marked_positions(const std::vector<glm::vec3> &positions, // generalization of above
+                                             bool broken_lines_mode, unsigned int n_rings, float radius_overall,
+                                             unsigned int n_ticks, const glm::vec4 &col);
+
+   static gboolean screen_centre_pulse_function(GtkWidget *widget,
+                                                GdkFrameClock *frame_clock,
+                                                gpointer data);
    static gboolean generic_pulse_function(GtkWidget *widget,
                                           GdkFrameClock *frame_clock,
                                           gpointer data);
+   // this should wrap generic_pulse_function
+   // return the continue-status
+   static gboolean invalid_residue_pulse_function(GtkWidget *widget,
+                                                  GdkFrameClock *frame_clock,
+                                                  gpointer data);
    static gboolean wait_for_hooray_refinement_tick_func(GtkWidget *widget,
                                                         GdkFrameClock *frame_clock,
                                                         gpointer data);

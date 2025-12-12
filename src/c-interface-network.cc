@@ -248,12 +248,12 @@ int coot_get_url_and_activate_curl_hook(const std::string &url,
 	 success = curl_easy_perform(c);
 
          if (coot::file_exists(file_name)) {
-            std::cout << "::::::::::::::: file_exists " << file_name << std::endl;
+            std::cout << "DEBUG:: file_exists " << file_name << std::endl;
             std::filesystem::path fp(file_name);
             std::uintmax_t size = std::filesystem::file_size(fp);
-            std::cout << "::::::::::::::: file_size " << size << std::endl;
+            std::cout << "DEBUG:: file_size " << size << std::endl;
             if (is_html(file_name)) {
-               std::cout << "::::::::::::::: file is html " << file_name << std::endl;
+               std::cout << "DEBUG:: file is html " << file_name << std::endl;
                success = CURLcode(23); // CURL write error (say)
                int rm_status = remove(file_name.c_str()); // Ciao Bella
                if (rm_status == 0)
@@ -640,8 +640,8 @@ fetch_alphafold_model_for_uniprot_id(const std::string &uniprot_id) {
    int imol = -1; // return this
    // https://alphafold.ebi.ac.uk/files/AF-Q7N8I7-F1-model_v4.pdb
    // https://alphafold.ebi.ac.uk/files/AF-Q7N8I7-F1-predicted_aligned_error_v4.json
-   std::string fn_tail_pdb = std::string("AF-") + uniprot_id + std::string("-F1-model_v3.pdb");
-   std::string fn_tail_pae = std::string("AF-") + uniprot_id + std::string("-F1-predicted_aligned_error_v4.json");
+   std::string fn_tail_pdb = std::string("AF-") + uniprot_id + std::string("-F1-model_v6.pdb");
+   std::string fn_tail_pae = std::string("AF-") + uniprot_id + std::string("-F1-predicted_aligned_error_v6.json");
 
    xdg_t xdg;
    std::string download_dir = join(xdg.get_cache_home().string(), "coot-download");

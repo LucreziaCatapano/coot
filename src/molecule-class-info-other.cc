@@ -42,6 +42,7 @@
 
 #include <iostream>
 #include <vector>
+#include <iterator>
 
 #include "compat/coot-sysdep.h"
 
@@ -93,6 +94,9 @@
 // #include "GL/glut.h"
 
 #include "rotamer-search-modes.hh"
+
+#include "utils/logging.hh"
+extern logging logger;
 
 
 // ---------------------------------------------------------------------------------------
@@ -349,6 +353,81 @@ molecule_class_info_t::set_atom_attribute(std::string chain_id, int resno, std::
    return istate;
 }
 
+int molecule_class_info_t::swap_atom_alt_conf(std::string chain_id, int res_no, std::string ins_code,
+                                              std::string atom_name, std::string alt_conf) {
+
+  int istate = 0;
+   if (atom_sel.n_selected_atoms > 0) {
+      int SelectionHandle = atom_sel.mol->NewSelection();
+      atom_sel.mol->SelectAtoms(SelectionHandle, 0,
+                                chain_id.c_str(),
+                                res_no, ins_code.c_str(),
+                                res_no, ins_code.c_str(),
+                                "*",
+                                atom_name.c_str(),
+                                "*",
+                                "*");
+      int nSelAtoms;
+      mmdb::PPAtom SelAtoms;
+      atom_sel.mol->GetSelIndex(SelectionHandle, SelAtoms, nSelAtoms);
+      if (nSelAtoms > 1) {
+         mmdb::Atom *at_0 = SelAtoms[0];
+         mmdb::Atom *at_1 = SelAtoms[1];
+         std::string alt_conf_0 = at_0->altLoc;
+         std::string alt_conf_1 = at_1->altLoc;
+         if (alt_conf_0.length() <= 8){
+            if (alt_conf_1.length() <= 8){
+               strncpy(at_0->altLoc, alt_conf_1.c_str(), alt_conf_1.length()+1);
+               strncpy(at_1->altLoc, alt_conf_0.c_str(), alt_conf_0.length()+1);
+            }
+         }
+      }
+   }
+   have_unsaved_changes_flag = 1;
+   atom_sel.mol->FinishStructEdit();
+   make_bonds_type_checked(__FUNCTION__); // calls update_ghosts()
+   return istate;
+ }
+
+int molecule_class_info_t::swap_residue_alt_confs(const std::string &chain_id, int res_no,
+                                                  const std::string &ins_code) {
+
+
+   int state = 0;
+   coot::residue_spec_t rs(chain_id, res_no, ins_code);
+   mmdb::Residue *residue_p = get_residue(rs);
+   if (residue_p) {
+      mmdb::Atom **residue_atoms = 0;
+      int n_residue_atoms = 0;
+      residue_p->GetAtomTable(residue_atoms, n_residue_atoms);
+      std::set<std::string> alt_confs;
+      for (int iat=0; iat<n_residue_atoms; iat++) {
+         mmdb::Atom *at = residue_atoms[iat];
+         std::string alt_conf = at->altLoc;
+         alt_confs.insert(alt_conf);
+      }
+      if (alt_confs.size() == 2) {
+         make_backup();
+         std::string first_ac = *alt_confs.begin();
+         std::string second_ac = *std::next(alt_confs.begin());
+         for (int iat=0; iat<n_residue_atoms; iat++) {
+            mmdb::Atom *at = residue_atoms[iat];
+            std::string alt_conf = at->altLoc;
+            if (alt_conf == first_ac)  strncpy(at->altLoc, second_ac.c_str(), second_ac.length()+1);
+            if (alt_conf == second_ac) strncpy(at->altLoc,  first_ac.c_str(),  first_ac.length()+1);
+            have_unsaved_changes_flag = 1;
+         }
+      } else {
+         logger.log(log_t::WARNING, "expected residue to have 2 alt confs but it had",
+                    alt_confs.size(), rs.format());
+      }
+   }
+   atom_sel.mol->FinishStructEdit();
+   make_bonds_type_checked(__FUNCTION__); // calls update_ghosts()
+   return state;
+}
+
+
 int
 molecule_class_info_t::set_atom_string_attribute(std::string chain_id, int resno, std::string ins_code,
                                                  std::string atom_name, std::string alt_conf,
@@ -358,13 +437,13 @@ molecule_class_info_t::set_atom_string_attribute(std::string chain_id, int resno
    if (atom_sel.n_selected_atoms > 0) {
       int SelectionHandle = atom_sel.mol->NewSelection();
       atom_sel.mol->SelectAtoms(SelectionHandle, 0,
-                                (char *) chain_id.c_str(),
-                                resno, (char *) ins_code.c_str(),
-                                resno, (char *) ins_code.c_str(),
+                                chain_id.c_str(),
+                                resno, ins_code.c_str(),
+                                resno, ins_code.c_str(),
                                 "*",
-                                (char *) atom_name.c_str(),
+                                atom_name.c_str(),
                                 "*",
-                                (char *) alt_conf.c_str());
+                                alt_conf.c_str());
       int nSelAtoms;
       mmdb::PPAtom SelAtoms;
       atom_sel.mol->GetSelIndex(SelectionHandle, SelAtoms, nSelAtoms);

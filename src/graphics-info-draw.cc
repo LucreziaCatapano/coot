@@ -1849,6 +1849,8 @@ graphics_info_t::draw_hud_colour_bar() {
 void
 graphics_info_t::draw_molecules() {
 
+   // this is not called in fancy mode.
+
    // opaque things
 
    draw_outlined_active_residue();
@@ -1882,6 +1884,8 @@ graphics_info_t::draw_molecules() {
    draw_happy_face_residue_markers();
 
    draw_bad_nbc_atom_pair_markers(PASS_TYPE_STANDARD);
+
+   draw_bad_nbc_atom_pair_dashed_lines(PASS_TYPE_STANDARD);
 
    draw_chiral_volume_outlier_markers(PASS_TYPE_STANDARD);
 
@@ -2174,13 +2178,14 @@ graphics_info_t::update_mesh_for_outline_of_active_residue(int imol, const coot:
    // the invalid residue pulse (maybe it needs a new name then?). It uses delete_item_pulse_centres
    // for the centres of the pulses.
    auto setup_invalid_residue_pulse_for_invalid_range_outine = [] () {
-      std::cout << "debug:: update_mesh_for_outline_of_active_residue: lambda start " << std::endl;
       bool broken_line_mode = false;
-      lines_mesh_for_identification_pulse.setup_red_pulse(broken_line_mode);
+      float radius_overall = 6.0;
+      unsigned int n_rings = 3;
+      lines_mesh_for_generic_pulse.setup_red_pulse(radius_overall, n_rings, broken_line_mode);
       pulse_data_t *pulse_data = new pulse_data_t(0, 12);
       gpointer user_data = reinterpret_cast<void *>(pulse_data);
       std::vector<glm::vec3> positions = { get_rotation_centre() };
-      delete_item_pulse_centres = positions;
+      generic_pulse_centres = positions;
       gtk_widget_add_tick_callback(glareas[0], generic_pulse_function, user_data, NULL);
    };
 
@@ -3194,7 +3199,17 @@ graphics_info_t::draw_hud_buttons() {
 void
 graphics_info_t::setup_draw_for_translation_gizmo() {
 
-   attach_buffers();
+   GLenum err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "--start--", stringify_error_code(err));
+
+   attach_buffers(); // this causes a GL error - why?
+
+   err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "A", stringify_error_code(err));
 
    size_t s = translation_gizmo.mesh.vertices.size();
    std::vector<s_generic_vertex> cv(s); //  conveted vertices
@@ -3203,10 +3218,30 @@ graphics_info_t::setup_draw_for_translation_gizmo() {
       cv[i].normal = translation_gizmo.mesh.vertices[i].normal;
       cv[i].color  = translation_gizmo.mesh.vertices[i].color;
    }
+   err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "B", stringify_error_code(err));
    translation_gizmo_mesh.clear(); // so that we don't add to the mesh!
+   err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "C", stringify_error_code(err));
    translation_gizmo_mesh.import(cv, translation_gizmo.mesh.triangles);
+   err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "D", stringify_error_code(err));
    translation_gizmo_mesh.setup_buffers();
+   err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "E",  stringify_error_code(err));
    translation_gizmo_mesh.set_draw_this_mesh(false);
+   err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("setup_draw_for_translation_gizmo"),
+                 "F", stringify_error_code(err));
 
 }
 
@@ -4503,11 +4538,13 @@ graphics_info_t::render_3d_scene(GtkGLArea *gl_area) {
                      // so rename this function? Or just bring everything here?  Put this render() function
                      // into new file graphics-info-opengl-render.cc
 
+   draw_at_screen_centre_pulse();
+
    draw_invalid_residue_pulse();
 
-   draw_identification_pulse();
-
    draw_delete_item_pulse();
+
+   draw_generic_pulses();
 
    draw_measure_distance_and_angles(); // maybe in draw_molecules()?
 
@@ -4520,6 +4557,7 @@ graphics_info_t::render_3d_scene(GtkGLArea *gl_area) {
    draw_texture_meshes();
 
 }
+
 
 void
 graphics_info_t::render_3d_scene_with_shadows() {
@@ -4549,9 +4587,11 @@ graphics_info_t::render_3d_scene_with_shadows() {
                                   // so rename this function? Or just bring everything here?  Put this render() function
                                   // into new file graphics-info-opengl-render.cc
 
+   draw_at_screen_centre_pulse();
+
    draw_invalid_residue_pulse();
 
-   draw_identification_pulse();
+   draw_generic_pulses();
 
    draw_delete_item_pulse();
 
@@ -5352,11 +5392,17 @@ graphics_info_t::update_bad_nbc_atom_pair_marker_positions() {
          // if (nbc_baddies_count_delta(previous_round_nbc_baddies_atom_index_map, rr.nbc_baddies_atom_index_map) > 1)
          // play_sound("diego-arrives");
 
+         int bad_nbc_atom_pair_marker_positions_size_pre = bad_nbc_atom_pair_marker_positions.size();
          bad_nbc_atom_pair_marker_positions.clear();
          std::vector<coot::refinement_results_nbc_baddie_t> &baddies(rr.sorted_nbc_baddies);
          for (unsigned int i=0; i<baddies.size(); i++) {
             bad_nbc_atom_pair_marker_positions.push_back(coord_orth_to_glm(baddies[i].mid_point));
          }
+         int bad_nbc_atom_pair_marker_positions_size_post = bad_nbc_atom_pair_marker_positions.size();
+
+         int bad_nbc_size_delta = bad_nbc_atom_pair_marker_positions_size_post - bad_nbc_atom_pair_marker_positions_size_pre;
+         if (bad_nbc_size_delta > 0)
+            play_sound("diego-arrives");  // maybe new-bump
 
          GLenum err = glGetError();
          if (err)
@@ -5399,6 +5445,98 @@ graphics_info_t::update_bad_nbc_atom_pair_marker_positions() {
       }
    } else {
       bad_nbc_atom_pair_marker_positions.clear();
+   }
+}
+
+#include "coot-utils/cylinder-utils.hh"
+
+// static
+void graphics_info_t::update_bad_nbc_atom_pair_dashed_lines() {
+
+   // look at above
+
+   auto convert_vertices = [] (const std::vector<coot::api::vnc_vertex> &vertices) {
+      std::vector<s_generic_vertex> v_out(vertices.size());
+      for (unsigned int i=0; i<vertices.size(); i++) {
+         const auto &v = vertices[i];
+         v_out[i].pos    = v.pos;
+         v_out[i].normal = v.normal;
+         v_out[i].color  = v.color;
+      }
+      return v_out;
+   };
+
+   auto baddies_to_dashed_lines = [] (const std::vector<coot::refinement_results_nbc_baddie_t> &baddies,
+                                      unsigned int n_dashes) {
+      dashed_cylinders_info_t dci;
+      std::vector<std::pair<glm::vec3, glm::vec3> > positions;
+      for (unsigned int i=0; i<baddies.size(); i++) {
+         const auto &baddie = baddies[i];
+         glm::vec3 p1(baddie.atom_1_pos.x(), baddie.atom_1_pos.y(), baddie.atom_1_pos.z());
+         glm::vec3 p2(baddie.atom_2_pos.x(), baddie.atom_2_pos.y(), baddie.atom_2_pos.z());
+         positions.push_back(std::make_pair(p1, p2));
+      }
+      dci = get_dashed_cylinders(positions, n_dashes);
+      return dci;
+   };
+
+   // Note:
+   //    class dashed_cylinders_info_t {
+   // public:
+   //    dashed_cylinders_info_t() {}
+   //    cylinder c;
+   //    glm::mat3 rot;
+   //    glm::vec3 scales;
+   //    std::vector<glm::vec3> offsets;
+   // };
+
+   GLenum err = glGetError();
+   if (err)
+      logger.log(log_t::GL_ERROR, logging::function_name_t("update_bad_nbc_atom_pair_dashed_lines"),
+                 "--start--", stringify_error_code(err));
+
+   if (moving_atoms_asc) {
+      if (moving_atoms_asc->mol) {
+         coot::refinement_results_t &rr = saved_dragged_refinement_results;
+
+         unsigned int n_dashes = 23;
+
+         attach_buffers();
+         err = glGetError();
+         if (err)
+            logger.log(log_t::GL_ERROR, logging::function_name_t("update_bad_nbc_atom_pair_dashed_lines"),
+                       "A", stringify_error_code(err));
+
+         // make instances
+         std::vector<coot::refinement_results_nbc_baddie_t> &baddies(rr.sorted_nbc_baddies);
+         if (! baddies.empty()) {
+            dashed_cylinders_info_t dl = baddies_to_dashed_lines(baddies, n_dashes);
+            std::vector<glm::mat4> mats;
+            std::vector<glm::vec4> colours;
+            for (unsigned int i=0; i<dl.oris_and_offsets.size(); i++) {
+               const auto &ori = dl.oris_and_offsets[i].first;
+               for (unsigned int j=0; j<dl.oris_and_offsets[i].second.size(); j++) {
+                  const auto &offset = dl.oris_and_offsets[i].second[j];
+                  glm::mat4 u(1.0f);
+                  glm::mat4 s = glm::scale(u, dl.scales);
+                  glm::mat4 r = dl.oris_and_offsets[i].first;
+                  glm::mat4 t = glm::translate(u, offset);
+                  glm::mat4 m1 = t * r * s;
+                  mats.push_back(m1);
+                  colours.push_back(glm::vec4(0.6, 0.4, 0.2, 1.0));
+               }
+            }
+            Shader *shader_p = nullptr;
+            unsigned int n_instances = mats.size();
+            Material material;
+            if (n_instances > 0) {
+               for (unsigned int i=0; i<mats.size(); i++) {
+                  // std::cout << "mat " << i << " " << glm::to_string(mats[i]) << std::endl;
+               }
+            }
+            bad_nbc_atom_pair_dashed_line.setup_rtsc_instancing(shader_p, mats, colours, n_instances, material);
+         }
+      }
    }
 }
 
@@ -5494,6 +5632,41 @@ graphics_info_t::setup_draw_for_bad_nbc_atom_pair_markers() {
 
 }
 
+void graphics_info_t::setup_draw_for_bad_nbc_atom_pair_dashed_line() {
+
+   // the mesh gets setup on update
+   auto convert_vertices = [] (const std::vector<coot::api::vnc_vertex> &vertices) {
+      std::vector<s_generic_vertex> v_out(vertices.size());
+      for (unsigned int i=0; i<vertices.size(); i++) {
+         const auto &v = vertices[i];
+         v_out[i].pos    = v.pos;
+         v_out[i].normal = v.normal;
+         v_out[i].color  = v.color;
+      }
+      return v_out;
+   };
+
+   GLenum err = glGetError();
+   if (err)
+      logger.log(log_t::WARNING, logging::function_name_t("setup_draw_for_bad_nbc_atom_pair_dashed_line"),
+                 "---start---", stringify_error_code(err));
+
+   attach_buffers();
+   cylinder c;
+   c.init_unit(20);
+   c.add_flat_end_cap();
+   c.add_flat_start_cap();
+   bad_nbc_atom_pair_dashed_line = Mesh(convert_vertices(c.vertices), c.triangles);
+   bad_nbc_atom_pair_dashed_line.set_name("bad_nbc_atom_pair_dashed_line Mesh");
+   bad_nbc_atom_pair_dashed_line.setup_buffers();
+
+   if (err)
+      logger.log(log_t::WARNING, logging::function_name_t("setup_draw_for_bad_nbc_atom_pair_dashed_line"),
+                 "---end---", stringify_error_code(err));
+
+}
+
+
 // static
 void
 graphics_info_t::draw_bad_nbc_atom_pair_markers(unsigned int pass_type) {
@@ -5528,8 +5701,36 @@ graphics_info_t::draw_bad_nbc_atom_pair_markers(unsigned int pass_type) {
    }
 }
 
- void
-    graphics_info_t::setup_draw_for_chiral_volume_outlier_markers() {
+void graphics_info_t::draw_bad_nbc_atom_pair_dashed_lines(unsigned int pass_type) {
+
+   if (curmudgeon_mode) return;
+
+   if (draw_bad_nbc_atom_pair_markers_flag) {
+
+      if (! bad_nbc_atom_pair_marker_positions.empty()) {
+         glm::mat4 mvp = get_molecule_mvp();
+         glm::mat4 model_rotation = get_model_rotation();
+         glm::vec4 bg_col(background_colour, 1.0);
+
+         bool transfered_colour_is_instanced = true;
+         if (pass_type == PASS_TYPE_STANDARD)
+            bad_nbc_atom_pair_dashed_line.draw_instanced(pass_type,
+                                                         &shader_for_instanced_objects,
+                                                         mvp,
+                                                         model_rotation,
+                                                         lights,
+                                                         eye_position,
+                                                         bg_col,
+                                                         shader_do_depth_fog_flag,
+                                                         transfered_colour_is_instanced);
+
+      }
+   }
+
+}
+
+
+void graphics_info_t::setup_draw_for_chiral_volume_outlier_markers() {
 
     texture_for_chiral_volume_outlier_markers.init("chiral-volume-outlier-marker.png");
     float ts = 0.7; // relative texture size
@@ -5539,12 +5740,13 @@ graphics_info_t::draw_bad_nbc_atom_pair_markers(unsigned int pass_type) {
 
 }
 
- // static
- void
-    graphics_info_t::draw_chiral_volume_outlier_markers(unsigned int pass_type) {
+// static
+void graphics_info_t::draw_chiral_volume_outlier_markers(unsigned int pass_type) {
 
-    // unlike NBC markers, each molecule can have it's own chiral volume outlier markers
-    for (unsigned int imol=0; imol<molecules.size(); imol++) {
+   if (curmudgeon_mode) return;
+
+   // unlike NBC markers, each molecule can have it's own chiral volume outlier markers
+   for (unsigned int imol=0; imol<molecules.size(); imol++) {
        if (is_valid_model_molecule(imol)) {
           if (molecules[imol].draw_it) {
              if (molecules[imol].draw_chiral_volume_outlier_markers_flag) {
@@ -5608,6 +5810,8 @@ graphics_info_t::draw_bad_nbc_atom_pair_markers(unsigned int pass_type) {
 
 void graphics_info_t::add_unhappy_atom_marker(int imol, const coot::atom_spec_t &atom_spec) {
 
+   if (curmudgeon_mode) return;
+
    if (is_valid_model_molecule(imol)) {
       mmdb::Atom *at = molecules[imol].get_atom(atom_spec);
       if (at) {
@@ -5617,13 +5821,27 @@ void graphics_info_t::add_unhappy_atom_marker(int imol, const coot::atom_spec_t 
          attach_buffers();
          tmesh_for_unhappy_atom_markers.draw_this_mesh = true;
          tmesh_for_unhappy_atom_markers.update_instancing_buffer_data(positions);
-         unsigned int n_instances = tmesh_for_chiral_volume_outlier_markers.get_n_instances();
+         unsigned int n_instances = tmesh_for_unhappy_atom_markers.get_n_instances();
          if (false)
             std::cout << "debug:: :::::::::::::::::::::::::::::::: add position " << glm::to_string(p)
                       << "  " << n_instances << std::endl;
       }
    }
+}
 
+void graphics_info_t::remove_all_unhappy_atom_markers() {
+
+   for (int imol=0; imol<molecules.size(); imol++) {
+      if (is_valid_model_molecule(imol)) {
+         if (! molecules[imol].unhappy_atom_marker_positions.empty()) {
+            molecules[imol].unhappy_atom_marker_positions.clear();
+         }
+      }
+   }
+   std::vector<glm::vec3> empty;
+   tmesh_for_unhappy_atom_markers.draw_this_mesh = false;
+   tmesh_for_unhappy_atom_markers.update_instancing_buffer_data(empty);
+   graphics_draw();
 }
 
 void graphics_info_t::setup_draw_for_unhappy_atom_markers() {
@@ -5953,11 +6171,11 @@ graphics_info_t::setup_delete_item_pulse(mmdb::Residue *residue_p) {
                                     pulse_data->n_pulse_steps += 1;
                                     if (pulse_data->n_pulse_steps > pulse_data->n_pulse_steps_max) {
                                        continue_status = 0;
-                                       lines_mesh_for_delete_item_pulse.clear();
-                                       delete_item_pulse_centres.clear();
+                                       lines_mesh_for_generic_pulse.clear();
+                                       generic_pulse_centres.clear();
                                     } else {
                                        float ns = pulse_data->n_pulse_steps;
-                                       lines_mesh_for_delete_item_pulse.update_buffers_for_pulse(ns, -1);
+                                       lines_mesh_for_generic_pulse.update_buffers_for_pulse(ns, -1);
                                     }
                                     graphics_draw();
                                     return gboolean(continue_status);
@@ -5966,10 +6184,12 @@ graphics_info_t::setup_delete_item_pulse(mmdb::Residue *residue_p) {
    pulse_data_t *pulse_data = new pulse_data_t(0, 20); // 20 matches the number in update_buffers_for_pulse()
    gpointer user_data = reinterpret_cast<void *>(pulse_data);
    std::vector<glm::vec3> positions = residue_to_positions(residue_p);
-   delete_item_pulse_centres = positions;
+   generic_pulse_centres = positions;
    gtk_gl_area_attach_buffers(GTK_GL_AREA(glareas[0]));
    bool broken_line_mode = true;
-   lines_mesh_for_delete_item_pulse.setup_red_pulse(broken_line_mode);
+   float radius_overall = 6.0;
+   unsigned int n_rings = 3;
+   lines_mesh_for_generic_pulse.setup_red_pulse(radius_overall, n_rings, broken_line_mode);
    gtk_widget_add_tick_callback(glareas[0], delete_item_pulse_func, user_data, NULL);
 
 };
@@ -5991,11 +6211,11 @@ graphics_info_t::setup_delete_residues_pulse(const std::vector<mmdb::Residue *> 
                                     pulse_data->n_pulse_steps += 1;
                                     if (pulse_data->n_pulse_steps > pulse_data->n_pulse_steps_max) {
                                        continue_status = 0;
-                                       lines_mesh_for_delete_item_pulse.clear();
-                                       delete_item_pulse_centres.clear();
+                                       lines_mesh_for_generic_pulse.clear();
+                                       generic_pulse_centres.clear();
                                     } else {
                                        float ns = pulse_data->n_pulse_steps;
-                                       lines_mesh_for_delete_item_pulse.update_buffers_for_pulse(ns, -1);
+                                       lines_mesh_for_generic_pulse.update_buffers_for_pulse(ns, -1);
                                     }
                                     graphics_draw();
                                     return gboolean(continue_status);
@@ -6009,10 +6229,12 @@ graphics_info_t::setup_delete_residues_pulse(const std::vector<mmdb::Residue *> 
       std::vector<glm::vec3> residue_positions = residue_to_positions(residue_p);
       all_positions.insert(all_positions.end(), residue_positions.begin(), residue_positions.end());
    }
-   delete_item_pulse_centres = all_positions;
+   generic_pulse_centres = all_positions;
    gtk_gl_area_attach_buffers(GTK_GL_AREA(glareas[0]));
    bool broken_line_mode = true;
-   lines_mesh_for_delete_item_pulse.setup_red_pulse(broken_line_mode);
+   unsigned int n_rings = 3;
+   float radius_overall = 6.0;
+   lines_mesh_for_generic_pulse.setup_red_pulse(radius_overall, n_rings, broken_line_mode);
    gtk_widget_add_tick_callback(glareas[0], delete_item_pulse_func, user_data, NULL);
 
 };
@@ -6030,12 +6252,29 @@ graphics_info_t::invalid_residue_pulse_function(GtkWidget *widget,
    if (pulse_data->n_pulse_steps > pulse_data->n_pulse_steps_max) {
       continue_status = 0;
       lines_mesh_for_identification_pulse.clear();
-      delete_item_pulse_centres.clear(); // we sneakily use this vector (but no longer)
+      generic_pulse_centres.clear(); // we sneakily use this vector (but no longer)
    } else {
       float ns = pulse_data->n_pulse_steps;
       lines_mesh_for_identification_pulse.update_buffers_for_invalid_residue_pulse(ns);
    }
    graphics_draw();
+   return gboolean(continue_status);
+}
+
+// static
+gboolean
+graphics_info_t::screen_centre_pulse_function(GtkWidget *widget,
+                                              GdkFrameClock *frame_clock,
+                                              gpointer data) {
+
+   gboolean continue_status = 1;
+   pulse_data_t *pulse_data = reinterpret_cast<pulse_data_t *>(data);
+   pulse_data->n_pulse_steps += 1;
+   if (pulse_data->n_pulse_steps > pulse_data->n_pulse_steps_max) {
+      continue_status = 0;
+      lines_mesh_for_identification_pulse.clear();
+      generic_pulse_centres.clear();
+   }
    return gboolean(continue_status);
 }
 
@@ -6050,11 +6289,10 @@ graphics_info_t::generic_pulse_function(GtkWidget *widget,
    pulse_data->n_pulse_steps += 1;
    if (pulse_data->n_pulse_steps > pulse_data->n_pulse_steps_max) {
       continue_status = 0;
-      lines_mesh_for_identification_pulse.clear();
-      delete_item_pulse_centres.clear();
+      lines_mesh_for_generic_pulse.clear();
+      generic_pulse_centres.clear();
    } else {
-      float f = 1.03f;
-      lines_mesh_for_identification_pulse.update_buffers_by_resize(f);
+      lines_mesh_for_generic_pulse.update_buffers_by_resize(pulse_data->resize_factor);
    }
    graphics_draw();
    return gboolean(continue_status);
@@ -6067,60 +6305,79 @@ graphics_info_t::setup_invalid_residue_pulse(mmdb::Residue *residue_p) {
    pulse_data_t *pulse_data = new pulse_data_t(0, 24);
    gpointer user_data = reinterpret_cast<void *>(pulse_data);
    std::vector<glm::vec3> residue_positions = residue_to_positions(residue_p);
-   delete_item_pulse_centres = residue_positions; // sneakily use a wrongly named function
+   generic_pulse_centres = residue_positions; // sneakily use a wrongly named function
    gtk_gl_area_attach_buffers(GTK_GL_AREA(glareas[0]));
+   unsigned int n_rings = 3;
+   float radius_overall = 6.0;
    bool broken_line_mode = false;
-   lines_mesh_for_identification_pulse.setup_red_pulse(broken_line_mode);
+   lines_mesh_for_identification_pulse.setup_red_pulse(radius_overall, n_rings, broken_line_mode);
    gtk_widget_add_tick_callback(glareas[0], invalid_residue_pulse_function, user_data, NULL);
 
 }
 
 
-void
-graphics_info_t::draw_invalid_residue_pulse() {
+void graphics_info_t::draw_at_screen_centre_pulse() {
 
-   if (! lines_mesh_for_identification_pulse.empty()) {
-      glm::mat4 mvp = get_molecule_mvp();
-      glm::mat4 model_rotation_matrix = get_model_rotation();
-      myglLineWidth(3.0);
-      GLenum err = glGetError();
-      if (err) std::cout << "draw_invalid_residue_pulse() glLineWidth " << err << std::endl;
-      for (auto pulse_centre : delete_item_pulse_centres)
-         lines_mesh_for_identification_pulse.draw(&shader_for_lines_pulse,
-                                                  pulse_centre, mvp,
-                                                  model_rotation_matrix, true);
-   }
-}
-
-
-void
-graphics_info_t::draw_identification_pulse() {
+   // 2025-12-06-PE identification and screen-centre are the same thing. "identification" should be renamed.
 
    if (! lines_mesh_for_identification_pulse.empty()) {
       glm::mat4 mvp = get_molecule_mvp();
       glm::mat4 model_rotation_matrix = get_model_rotation();
       myglLineWidth(2.0);
       GLenum err = glGetError();
-      if (err) std::cout << "draw_identification_pulse() glLineWidth " << err << std::endl;
+      if (err) std::cout << "draw_at_screen_centre_pulse() post glLineWidth " << err << std::endl;
       lines_mesh_for_identification_pulse.draw(&shader_for_lines_pulse,
                                                identification_pulse_centre,
                                                mvp, model_rotation_matrix, true);
    }
 }
 
+void graphics_info_t::draw_generic_pulses() {
+
+   if (false)
+      std::cout << "draw_generic_pulses()  -- start -- "
+                << lines_mesh_for_generic_pulse.empty() << " " << generic_pulse_centres.size() << std::endl;
+
+   if (! lines_mesh_for_generic_pulse.empty()) {
+      glm::mat4 mvp = get_molecule_mvp();
+      glm::mat4 model_rotation_matrix = get_model_rotation();
+      for (auto pulse_centre : generic_pulse_centres)
+         lines_mesh_for_generic_pulse.draw(&shader_for_lines_pulse,
+                                           pulse_centre, mvp,
+                                           model_rotation_matrix, true);
+   }
+}
+
+void graphics_info_t::draw_invalid_residue_pulse() {
+
+   return; // because we do it in draw_generic_pulses()
+
+   if (! lines_mesh_for_generic_pulse.empty()) {
+      glm::mat4 mvp = get_molecule_mvp();
+      glm::mat4 model_rotation_matrix = get_model_rotation();
+      myglLineWidth(3.0);
+      GLenum err = glGetError();
+      if (err) std::cout << "draw_invalid_residue_pulse() glLineWidth " << err << std::endl;
+      for (auto pulse_centre : generic_pulse_centres)
+         lines_mesh_for_generic_pulse.draw(&shader_for_lines_pulse,
+                                           pulse_centre, mvp,
+                                           model_rotation_matrix, true);
+   }
+}
+
 void
 graphics_info_t::draw_delete_item_pulse() {
 
-   if (! lines_mesh_for_delete_item_pulse.empty()) {
+   if (! lines_mesh_for_generic_pulse.empty()) {
       glm::mat4 mvp = get_molecule_mvp();
       glm::mat4 model_rotation_matrix = get_model_rotation();
       myglLineWidth(2.0);
       GLenum err = glGetError();
       if (err) std::cout << "draw_delete_item_pulse() glLineWidth " << err << std::endl;
-      for (unsigned int i=0; i<delete_item_pulse_centres.size(); i++) {
-         lines_mesh_for_delete_item_pulse.draw(&shader_for_lines_pulse,
-                                               delete_item_pulse_centres[i],
-                                               mvp, model_rotation_matrix, true);
+      for (unsigned int i=0; i<generic_pulse_centres.size(); i++) {
+         lines_mesh_for_generic_pulse.draw(&shader_for_lines_pulse,
+                                           generic_pulse_centres[i],
+                                           mvp, model_rotation_matrix, true);
       }
    }
 }

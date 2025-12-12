@@ -1652,8 +1652,8 @@ LinesMesh graphics_info_t::lines_mesh_for_boids_box;
 Mesh graphics_info_t::mesh_for_hydrogen_bonds = Mesh("mesh for hydrogen bonds");
 
 LinesMesh graphics_info_t::lines_mesh_for_identification_pulse;
-LinesMesh graphics_info_t::lines_mesh_for_delete_item_pulse;
-std::vector<glm::vec3> graphics_info_t::delete_item_pulse_centres;
+LinesMesh graphics_info_t::lines_mesh_for_generic_pulse;
+std::vector<glm::vec3> graphics_info_t::generic_pulse_centres;
 
 LinesMesh graphics_info_t::lines_mesh_for_hud_lines;
 LinesMesh graphics_info_t::lines_mesh_for_pull_restraint_neighbour_displacement_max_radius_ring;
@@ -1675,6 +1675,8 @@ std::vector<glm::vec3> graphics_info_t::happy_face_residue_marker_starting_posit
 TextureMesh graphics_info_t::tmesh_for_bad_nbc_atom_pair_markers = TextureMesh("tmesh-for-angry-diego");
 Texture graphics_info_t::texture_for_bad_nbc_atom_pair_markers;
 std::vector<glm::vec3> graphics_info_t::bad_nbc_atom_pair_marker_positions;
+
+Mesh graphics_info_t::bad_nbc_atom_pair_dashed_line = Mesh("bad nbc atom_pair dashed line instanced mesh");
 
 TextureMesh graphics_info_t::tmesh_for_unhappy_atom_markers = TextureMesh("tmesh-unhappy-atom-outliers");
 Texture graphics_info_t::texture_for_unhappy_atom_markers;

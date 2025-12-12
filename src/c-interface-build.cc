@@ -974,6 +974,84 @@ void set_debug_refinement(int state) {
    graphics_info_t::do_debug_refinement = state;
 }
 
+#ifdef USE_GUILE
+SCM get_residue_alt_confs_scm(int imol, const char *chain_id, int res_no, const char *ins_code) {
+
+   SCM r = SCM_EOL;
+   std::cout << "get_residue_alt_confs_scm(): Needs to be implemented" << std::endl;
+   return r;
+
+}
+#endif
+
+#ifdef USE_PYTHON
+/*! \brief Return either None (on failure) or a list of alt-conf strings (might be [""]) */
+PyObject *get_residue_alt_confs_py(int imol, const char *chain_id, int res_no, const char *ins_code) {
+
+   PyObject *r = Py_False;
+
+   if (is_valid_model_molecule(imol)) {
+      mmdb::Residue *residue_p = graphics_info_t::molecules[imol].get_residue(chain_id, res_no, ins_code);
+      if (residue_p) {
+         std::vector<std::string> ac = graphics_info_t::molecules[imol].get_residue_alt_confs(residue_p);
+         if (! ac.empty()) {
+            r = PyList_New(ac.size());
+            for (unsigned int i=0; i<ac.size(); i++) {
+               PyObject *s = myPyString_FromString(ac[i].c_str());
+               PyList_SetItem(r, i, s);
+            }
+         }
+      }
+   }
+
+   if (PyBool_Check(r))
+      Py_INCREF(r);
+
+   return r;
+}
+#endif
+
+
+/*! \brief swap atom alt-confs */
+int swap_residue_alt_confs(int imol, const char *chain_id, int res_no, const char *ins_code) {
+
+   int state = 0;
+
+   if (is_valid_model_molecule(imol)) {
+      state = graphics_info_t::molecules[imol].swap_residue_alt_confs(chain_id, res_no, ins_code);
+      graphics_info_t::graphics_draw();
+   }
+
+   std::string cmd = "swap-residue-alt-confs";
+   std::vector<coot::command_arg_t> args;
+   args.push_back(imol);
+   args.push_back(coot::util::single_quote(chain_id));
+   args.push_back(res_no);
+   args.push_back(coot::util::single_quote(ins_code));
+   add_to_history_typed(cmd, args);
+   return state;
+}
+
+
+int swap_atom_alt_conf(int imol, const char *chain_id, int res_no, const char *ins_code, const char *atom_name, const char*alt_conf) {
+
+   int istat = 0;
+   if (is_valid_model_molecule(imol)) {
+      istat = graphics_info_t::molecules[imol].swap_atom_alt_conf(chain_id, res_no, ins_code, atom_name, alt_conf);
+   }
+   graphics_draw();
+   std::string cmd = "swap-atom-alt-conf";
+   std::vector<coot::command_arg_t> args;
+   args.push_back(imol);
+   args.push_back(coot::util::single_quote(chain_id));
+   args.push_back(res_no);
+   args.push_back(coot::util::single_quote(ins_code));
+   args.push_back(coot::util::single_quote(atom_name));
+   args.push_back(coot::util::single_quote(alt_conf));
+   add_to_history_typed(cmd, args);
+   return istat;
+}
+
 
 int set_atom_attribute(int imol, const char *chain_id, int resno, const char *ins_code, const char *atom_name, const char*alt_conf, const char *attribute_name, float val) {
    int istat = 0;
@@ -4910,6 +4988,16 @@ int new_molecule_by_residue_type_selection(int imol_orig, const char *residue_ty
 
 int new_molecule_by_atom_selection(int imol_orig, const char* atom_selection_str) {
 
+   auto recentre_on_new_fragment = [] (int imol) {
+      graphics_info_t g;
+      coot::view_info_t this_view(g.view_quaternion, g.RotationCentre(), g.zoom, "");
+      float new_zoom = 100.0;
+      coot::Cartesian new_rotation_centre = g.molecules[imol].centre_of_molecule();
+      coot::view_info_t  new_view(g.view_quaternion, new_rotation_centre, new_zoom, "");
+      int nsteps = int(1000.0/g.views_play_speed);
+      coot::view_info_t::interpolate(this_view, new_view, nsteps);
+   };
+
    int imol = -1;
    if (is_valid_model_molecule(imol_orig)) {
       imol = graphics_info_t::create_molecule();
@@ -4936,6 +5024,7 @@ int new_molecule_by_atom_selection(int imol_orig, const char* atom_selection_str
 	    g.molecules[imol].install_model(imol, asc, g.Geom_p(), name, 1, shelx_flag);
 	    g.molecules[imol].set_have_unsaved_changes_from_outside();
 	    update_go_to_atom_window_on_new_mol();
+            recentre_on_new_fragment(imol);
 	 } else {
 	    std::cout << "in new_molecule_by_atom_selection "
 		      << "Something bad happened - No atoms selected"

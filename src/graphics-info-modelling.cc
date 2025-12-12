@@ -20,11 +20,7 @@
  * Fifth Floor, Boston, MA, 02110-1301, USA.
  */
 
-
-#ifdef USE_PYTHON
-#include "Python.h"  // before system includes to stop "POSIX_C_SOURCE" redefined problems
 #include "python-3-interface.hh"
-#endif
 
 #include "compat/coot-sysdep.h"
 
@@ -1037,6 +1033,7 @@ graphics_info_t::regenerate_intermediate_atoms_bonds_timeout_function() {
       }
 
       update_bad_nbc_atom_pair_marker_positions();
+      update_bad_nbc_atom_pair_dashed_lines();
       update_hydrogen_bond_positions(); // if the intermediate atoms had hydrogen bond restraints
 
       moving_atoms_bonds_lock = 0;
@@ -5248,9 +5245,19 @@ graphics_info_t::get_chi_atom_names(mmdb::Residue *residue,
    return r;
 }
 
+#include "pulse-data.hh"
 
+void graphics_info_t::pulse_marked_positions(const std::vector<glm::vec3> &positions,
+                                             bool broken_lines_mode, unsigned int n_rings, float radius_overall,
+                                             unsigned int n_ticks, const glm::vec4 &colour) {
 
-
+   lines_mesh_for_generic_pulse.setup_red_pulse(radius_overall, n_rings, broken_lines_mode, colour);
+   pulse_data_t *pulse_data = new pulse_data_t(0, n_ticks);
+   pulse_data->resize_factor = 1.005f;
+   gpointer user_data = reinterpret_cast<void *>(pulse_data);
+   generic_pulse_centres = positions; // class variable
+   gtk_widget_add_tick_callback(glareas[0], generic_pulse_function, user_data, NULL);
+}
 
 
 // Called by mouse motion callback (in_edit_chi_mode_flag)
@@ -5258,11 +5265,73 @@ graphics_info_t::get_chi_atom_names(mmdb::Residue *residue,
 void
 graphics_info_t::rotate_chi(double x, double y) {
 
+   auto atom_to_glm = [] (mmdb::Atom *at) { return glm::vec3(at->x, at->y, at->z); };
+
+   auto get_residue_from_moving_mol = [] () {
+
+      mmdb::Residue *residue_p = nullptr;
+      if (! moving_atoms_asc) {
+         std::cout << "ERROR: moving_atoms_asc is NULL" << std::endl;
+      } else {
+         if (moving_atoms_asc->n_selected_atoms == 0) {
+            std::cout << "ERROR: no atoms in moving_atoms_asc" << std::endl;
+         } else {
+            mmdb::Model *model_p = moving_atoms_asc->mol->GetModel(1);
+            if (model_p) {
+               mmdb::Chain *chain_p = model_p->GetChain(0);
+               if (chain_p) {
+                  if (chain_p->GetNumberOfResidues() > 0)
+                     residue_p = chain_p->GetResidue(0);
+               }
+            }
+         }
+      }
+      return residue_p;
+   };
+
+   auto setup_invalid_chi_angle_pulse = [atom_to_glm] (mmdb::Residue *residue_p) {
+
+      // don't add a new pulse/reset the pulse if pulse is already on-going
+      if (lines_mesh_for_generic_pulse.empty()) {
+         bool broken_line_mode = false;
+         unsigned int n_rings = 5;
+         float radius_overall = 1.0;
+         lines_mesh_for_generic_pulse.setup_red_pulse(radius_overall, n_rings, broken_line_mode);
+         pulse_data_t *pulse_data = new pulse_data_t(0, 40);
+         pulse_data->resize_factor = 1.005f;
+         gpointer user_data = reinterpret_cast<void *>(pulse_data);
+         std::vector<glm::vec3> positions;
+         mmdb::Atom **residue_atoms = 0;
+         int n_residue_atoms = 0;
+         residue_p->GetAtomTable(residue_atoms, n_residue_atoms);
+         for (int iat=0; iat<n_residue_atoms; iat++) {
+            mmdb::Atom *at = residue_atoms[iat];
+            if (! at->isTer()) {
+               positions.push_back(atom_to_glm(at));
+            }
+         }
+         generic_pulse_centres = positions;  // 20251128-PE class variable should be renamed
+         gtk_widget_add_tick_callback(glareas[0], generic_pulse_function, user_data, NULL);
+      }
+   };
+
    // the displacement of the mouse is the change in speed of the rotation
    // it's fun. Maybe tricky and conter-intuitive.
 
    // real values start at 1:
-   if (edit_chi_current_chi <= 0) return;
+   if (edit_chi_current_chi <= 0) {
+
+      mmdb::Residue *residue_p = get_residue_from_moving_mol();
+      if (residue_p) {
+         // user feedback,
+         // first check that there isn't a pulse already underway
+         if (lines_mesh_for_identification_pulse.empty()) {
+            setup_invalid_chi_angle_pulse(residue_p);
+         }
+         graphics_info_t::ephemeral_overlay_label("select_a_chi_angle_label");
+      }
+      return;
+   }
 
    mouse_current_x = x;
    mouse_current_y = y;

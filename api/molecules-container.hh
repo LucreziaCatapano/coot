@@ -1300,6 +1300,13 @@ public:
    //! @return the residue name, return a blank string on residue not found.
    std::string get_residue_name(int imol, const std::string &chain_id, int res_no, const std::string &ins_code) const;
 
+   //! Get the residue type
+   //!
+   //! @param imol is the model molecule index
+   //! @param cid is the selection CID e.g "//A/16" (residue 16 of chain A)
+   //! @return a string. Return an empty string on failure
+   std::string get_residue_type(int imol, const std::string &cid) const;
+
    //! Get the SMILES string for the give residue type
    //!
    //! @param residue 3 letter-code/name of the compound-id
@@ -1864,6 +1871,15 @@ public:
    //!
    //! @return the change information.
    coot::molecule_t::rotamer_change_info_t change_to_first_rotamer(int imol, const std::string &residue_cid, const std::string &alt_conf);
+
+   //! Change to the nth rotamer
+   //!
+   //! @param imol is the model molecule index
+   //! @param residue_cid is the atom selection CID e.g "//A/15" (all the atoms in residue 15 of chain A)
+   //! @param alt_conf is the alternate conformation, e.g. "A" or "B"
+   //!
+   //! @return the state of the change.
+   int set_residue_to_rotamer_number(int imol, const std::string &residue_cid, const std::string &alt_conf, int rotamer_number);
 
    //! Delete item
    //!

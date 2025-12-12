@@ -1568,7 +1568,7 @@ void set_display_intro_string(const char *str);
 /*! \brief return the extent of the box/radius of electron density contours */
 float get_map_radius();
 
-/*! \brief not everone likes coot's esoteric depth cueing system
+/*! \brief not everyone likes coot's esoteric depth cueing system
 
   Pass an argument istate=1 to turn it off
 
@@ -2623,6 +2623,28 @@ int get_reset_b_factor_moved_atoms_state();
 void set_temperature_factors_for_atoms_in_residue_scm(int imol, SCM residue_spec_scm, float bf);
 #endif
 #endif
+
+#ifdef __cplusplus/* protection from use in callbacks.c, else compilation probs */
+#ifdef USE_GUILE
+SCM get_residue_alt_confs_scm(int imol, const char *chain_id, int res_no, const char *ins_code);
+#endif
+#endif
+
+#ifdef __cplusplus /* protection from use in callbacks.c, else compilation probs */
+#ifdef USE_PYTHON
+/*! \brief Return either False (on failure) or a list of alt-conf strings (might be [""]) */
+PyObject *get_residue_alt_confs_py(int imol, const char *chain_id, int res_no, const char *ins_code);
+#endif
+#endif
+
+
+
+/*! \brief swap atom alt-confs */
+int swap_atom_alt_conf(int imol, const char *chain_id, int res_no, const char *ins_code,
+                       const char *atom_name, const char*alt_conf);
+
+/*! \brief swap atom alt-confs */
+int swap_residue_alt_confs(int imol, const char *chain_id, int res_no, const char *ins_code);
 
 /*! \brief set a numberical attibute to the atom with the given specifier.
 

@@ -1,5 +1,5 @@
 
-	------
+------
 Wed May  9 13:54:04 BST 2007
 
    Dirk Kostewa:
@@ -3986,7 +3986,8 @@ INFO::
    o change the PACKAGE_VERSION in CMakeLists.txt
    o update data/Components-inchikey.ich
    o Correct the version in the about_dialog in the coot-gtk4.ui file
-   o Artists acknowledged in glade/aboutdialog?
+   o Artists acknowledged in glade/aboutdialog? 
+   o update Components-inchikey.ich
    o Use []
         Change the splash screen?
         Change the release name in the About dialog (aboutdialog) (not needed for bug fix)
@@ -11946,4 +11947,22 @@ see photos.
 
 get the slides
 
+
+-----
+Sun 23 Nov 2025 13:49:06 GMT
+
+   https://www.reddit.com/r/StructuralBiology/comments/1p3y49c/hbat_2_analyze_hydrogen_bonds_and_noncovalent/
+
+----
+Thu 27 Nov 2025 12:26:15 GMT
+
+   Ais for automated segmentation - what is Ais?
+
+---
+Sat 29 Nov 15:08:12 GMT 2025
+
+   when talking about thought about the new interface:
+   QoL
+
+   learnability, productivity, forgiveness, and aesthetics
 

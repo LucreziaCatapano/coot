@@ -635,7 +635,7 @@
             <attribute name="action">app.bond_colours_action</attribute>
           </item>
           <item>
-            <attribute name="label">Bond Parameters...</attribute>
+            <attribute name="label">Bond and Atom Parameters...</attribute>
             <attribute name="action">app.bond_parameters_action</attribute>
           </item>
 
@@ -1136,6 +1136,10 @@
       <item>
         <attribute name="label" translatable="yes">Hydrogen Atoms in Molecule</attribute>
         <attribute name="action">app.delete_item_hydrogen_atoms_in_molecule</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Pick Delete Atom(s)</attribute>
+        <attribute name="action">app.delete_item_pick_delete</attribute>
       </item>
    </section>
   </menu>
@@ -4764,6 +4768,7 @@ that you wish to delete.               </property>
         </child>
         <child type="action">
           <object class="GtkBox" id="hbox71">
+            <property name="halign">end</property>
             <child>
               <object class="GtkButton" id="edit_chi_angles_cancel_button">
                 <property name="label" translatable="yes">  Cancel  </property>
@@ -7417,11 +7422,9 @@ Do you want to continue?
                         <items>
                                <item>NAG-NAG-BMA</item>
                                <item>High Mannose</item>
-                               <!-- 2025-10-06-PE building/refinement of branches doesn't work properly ATM
                                <item>Hybrid</item>
                                <item>Mammalian Biantennary</item>
                                <item>Plant Biantennary</item>
-                               -->
                         </items>
                       </object>
                     </child>
@@ -10284,11 +10287,29 @@ Do you want to continue?
             </child>
 
             <child type="overlay">
+              <object class="GtkLabel" id="select_a_chi_angle_label">
+                <property name="visible">False</property>
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <property name="label" translatable="yes"> Select A Χ Angle</property>
+              </object>
+            </child>
+
+            <child type="overlay">
               <object class="GtkLabel" id="session_saved_label">
                 <property name="visible">False</property>
                 <property name="halign">center</property>
                 <property name="valign">start</property>
                 <property name="label" translatable="yes"> Session Saved </property>
+              </object>
+            </child>
+
+            <child type="overlay">
+              <object class="GtkLabel" id="occupancy_b_factors_updated_label">
+                <property name="visible">False</property>
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <property name="label" translatable="yes">Occupancy/B-factor of Residue Updated</property>
               </object>
             </child>
 
@@ -17878,6 +17899,7 @@ Move a copy?</property>
         </child>
         <child>
           <object class="GtkBox">
+            <property name="halign">end</property>
             <child>
               <object class="GtkButton" id="curlew_dialog_close_button">
                 <property name="accessible-role">menu-item-radio</property>

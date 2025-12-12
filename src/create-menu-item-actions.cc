@@ -2614,8 +2614,8 @@ void add_refine_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
       GtkWidget *switch_rama          = gtk_switch_new();
       GtkWidget *switch_rota          = gtk_switch_new();
 
-      auto switch_contact_dots_switched = +[] (GtkSwitch *sw, gpointer data) {
-         if (gtk_switch_get_active(GTK_SWITCH(sw))) {
+      auto switch_contact_dots_switched = +[] (GtkSwitch *sw, gboolean state, gpointer data) {
+         if (state) {
             set_do_coot_probe_dots_during_refine(1);
          } else {
             set_do_coot_probe_dots_during_refine(0);
@@ -2623,8 +2623,8 @@ void add_refine_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
          return static_cast<gboolean>(FALSE);
       };
 
-      auto switch_GM_restraints_switched = +[] (GtkSwitch *sw, gpointer data) {
-         if (gtk_switch_get_active(GTK_SWITCH(sw))) {
+      auto switch_GM_restraints_switched = +[] (GtkSwitch *sw, gboolean state, gpointer data) {
+         if (state) {
             std::cout << "GM restraints on" << std::endl;
             set_draw_moving_atoms_restraints(1);
          } else {
@@ -2634,8 +2634,8 @@ void add_refine_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
          return static_cast<gboolean>(FALSE);
       };
 
-      auto switch_rama_switched = +[] (GtkSwitch *sw, gpointer data) {
-         if (gtk_switch_get_active(GTK_SWITCH(sw))) {
+      auto switch_rama_switched = +[] (GtkSwitch *sw, gboolean state, gpointer data) {
+         if (state) {
             set_draw_moving_atoms_rama_markup(1);
          } else {
             set_draw_moving_atoms_rama_markup(0);
@@ -2643,8 +2643,9 @@ void add_refine_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
          return static_cast<gboolean>(FALSE);
       };
 
-      auto switch_rota_switched = +[] (GtkSwitch *sw, gpointer data) {
-         if (gtk_switch_get_active(GTK_SWITCH(sw))) {
+      auto switch_rota_switched = +[] (GtkSwitch *sw, gboolean state, gpointer data) {
+
+         if (state) {
             std::cout << "rota on" << std::endl;
             set_draw_moving_atoms_rota_markup(1);
          } else {
@@ -3755,14 +3756,9 @@ go_to_atom_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    // wrapped_create_show_symmetry_window() fills the window also
    GtkWidget *widget = wrapped_create_goto_atom_window(); // uses gtkbuilder
 
-				/* now we need to fill the entry boxes
-				   with default vaules and the option
-				   menu according to molecules that
-				   have coordinates. */
-
    gtk_widget_set_visible(widget, TRUE);
+   gtk_window_unminimize(GTK_WINDOW(widget));
    gtk_window_present(GTK_WINDOW(widget));
-   graphics_info_t::graphics_grab_focus();
 }
 
 
@@ -4133,6 +4129,7 @@ void show_validation_graphs_dialog(G_GNUC_UNUSED GSimpleAction *simple_action, G
    gtk_window_set_transient_for(GTK_WINDOW(di), GTK_WINDOW(main_window));
 
    auto get_first_model_molecule = [] () {
+
       graphics_info_t g;
       int imol = -1;
       int n_mol = g.molecules.size();
@@ -4143,6 +4140,23 @@ void show_validation_graphs_dialog(G_GNUC_UNUSED GSimpleAction *simple_action, G
       return imol;
    };
 
+   auto get_index_of_imol = [] (int imol) {
+
+      graphics_info_t g;
+      int n_mol = g.molecules.size();
+      int count = 0;
+      for (int ii=0; ii<n_mol; ii++) {
+         if (ii == imol) {
+            if (g.molecules[ii].open_molecule_p()) {
+               return count;
+            }
+         }
+         if (g.molecules[ii].open_molecule_p())
+            count += 1;
+      }
+      return -1; // failed to find (very strange)
+   };
+
    graphics_info_t g;
    GtkWidget *model_combobox = widget_from_builder("validation_graph_model_combobox");
 
@@ -4151,8 +4165,16 @@ void show_validation_graphs_dialog(G_GNUC_UNUSED GSimpleAction *simple_action, G
       imol = get_first_model_molecule();
 
    // I don't think that it's imol that I want to use for the index.
-   std::cout << "--------- in show_validation_graphs_dialog() " << model_combobox << " " << imol << std::endl;
-   gtk_combo_box_set_active(GTK_COMBO_BOX(model_combobox), imol);
+   std::cout << "DEBUG:: --- in show_validation_graphs_dialog() " << model_combobox << " " << imol << std::endl;
+
+   GtkTreeIter iter;
+   if (gtk_combo_box_get_active_iter(GTK_COMBO_BOX(model_combobox), &iter)) {
+      // iter was set (already)
+   } else {
+      int idx = get_index_of_imol(imol);
+      if (idx != -1)
+          gtk_combo_box_set_active(GTK_COMBO_BOX(model_combobox), idx);
+   }
 
    gtk_widget_set_visible(di, TRUE);
 }
@@ -5683,6 +5705,15 @@ delete_item_hydrogen_atoms_in_molecule(GSimpleAction *simple_action,
    }
 }
 
+// this is "old-style" - delete happens on pick.
+void delete_item_pick_delete(GSimpleAction *simple_action,
+                             GVariant *parameter,
+                             gpointer user_data) {
+
+   graphics_info_t::delete_item_atom = 1; // setup for atom pick
+   add_status_bar_text("Use Ctrl-click for multi-atom delete");
+}
+
 void
 create_actions(GtkApplication *application) {
 
@@ -6041,6 +6072,7 @@ create_actions(GtkApplication *application) {
    add_action("delete_item_residue_range", delete_item_residue_range);
    add_action("delete_item_chain", delete_item_chain);
    add_action("delete_item_hydrogen_atoms_in_molecule", delete_item_hydrogen_atoms_in_molecule);
+   add_action("delete_item_pick_delete", delete_item_pick_delete);
 
    // --- Modules ---
 

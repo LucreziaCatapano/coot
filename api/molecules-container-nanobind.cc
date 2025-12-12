@@ -913,6 +913,10 @@ NB_MODULE(coot_headless_api, m) {
          &molecules_container_t::get_overlaps_for_ligand,
          nb::arg("imol"), nb::arg("ligand_cid"),
          get_docstring_from_xml("get_overlaps_for_ligand").c_str())
+    .def("get_pucker_analysis_info",
+         &molecules_container_t::get_pucker_analysis_info,
+         nb::arg("imol"),
+         get_docstring_from_xml("get_pucker_analysis_info").c_str())
     .def("get_q_score",
          &molecules_container_t::get_q_score,
          nb::arg("imol_model"), nb::arg("imol_map"),
@@ -1379,6 +1383,11 @@ NB_MODULE(coot_headless_api, m) {
          &molecules_container_t::set_refinement_geman_mcclure_alpha,
          nb::arg("a"),
          get_docstring_from_xml("set_refinement_geman_mcclure_alpha").c_str())
+    .def("set_residue_to_rotamer_number",
+         &molecules_container_t::set_residue_to_rotamer_number,
+         nb::arg("imol"), nb::arg("residue_cid"),
+         nb::arg("alt_conf"), nb::arg("rotamer_number"),
+         get_docstring_from_xml("set_residue_to_rotamer_number").c_str())
     .def("set_show_timings",
          &molecules_container_t::set_show_timings,
          nb::arg("s"),
