@@ -52,6 +52,8 @@
 
 #include "utils/logging.hh"
 #include "widget-from-builder.hh"
+std::string git_commit(); // use a header?
+
 extern logging logger;
 
 void print_opengl_info();
@@ -453,7 +455,6 @@ on_glarea_key_controller_key_released(GtkEventControllerKey *controller,
 
    graphics_info_t g;
    g.on_glarea_key_controller_key_released(controller, keyval, keycode, modifiers);
-
 }
 
 
@@ -764,7 +765,7 @@ new_startup_create_splash_screen_window() {
    GtkWidget *splash_screen_window = gtk_window_new();
    gtk_window_set_title(GTK_WINDOW(splash_screen_window), "Coot-Splash");
    gtk_window_set_decorated(GTK_WINDOW(splash_screen_window), FALSE);
-   GtkWidget *picture = create_local_picture("coot-1.1.19.png");
+   GtkWidget *picture = create_local_picture("coot-1.1.20.png");
 
    gtk_widget_set_hexpand(GTK_WIDGET(picture),TRUE);
    gtk_widget_set_vexpand(GTK_WIDGET(picture),TRUE);
@@ -931,6 +932,22 @@ new_startup_application_activate(GtkApplication *application,
          coot_no_state_real_exit(0);
       }
       graphics_info_t::set_preferences_gtkbuilder(preferences_builder);
+
+      // set the version in the about dialog
+      GtkWidget *about_dialog = GTK_WIDGET(gtk_builder_get_object(builder, "about_dialog"));
+      std::string version_str = std::string(VERSION);
+      if (version_str.find("-pre") != std::string::npos) {
+         version_str += "\n";
+         version_str += git_commit();
+         std::string s = COOT_BUILD_INFO_STRING;
+         if (! s.empty()) {
+            version_str += "\n";
+            version_str += s;
+         }
+      }
+      // override the value in the coot-gtk4.ui file.
+      gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about_dialog), version_str.c_str());
+
 
       python_init();
 
@@ -1143,8 +1160,10 @@ new_startup_application_activate(GtkApplication *application,
       delete activate_data;
 
       auto destroy_splash_screen_callback = +[] (gpointer data) {
-         GtkWindow* splash_screen = GTK_WINDOW(data);
-         gtk_window_destroy(splash_screen);
+         if (data) {
+            GtkWindow* splash_screen = GTK_WINDOW(data);
+            gtk_window_destroy(splash_screen);
+         }
          return G_SOURCE_REMOVE;
       };
       g_idle_add(destroy_splash_screen_callback, splash_screen);
@@ -1272,8 +1291,11 @@ int new_startup(int argc, char **argv) {
       std::to_string(GTK_MICRO_VERSION);
    logger.log(log_t::INFO, "Built with GTK", gtk_version_string);
 
-   GtkWidget *splash_screen = new_startup_create_splash_screen_window();
-   gtk_widget_set_visible(splash_screen, TRUE);
+   GtkWidget *splash_screen = nullptr;
+   if (cld.use_splash_screen) {
+      splash_screen = new_startup_create_splash_screen_window();
+      gtk_widget_set_visible(splash_screen, TRUE);
+   }
 
    g_object_set(gtk_settings_get_default(), "gtk-application-prefer-dark-theme", TRUE, NULL);
    // Here's how you access that:
@@ -1281,12 +1303,15 @@ int new_startup(int argc, char **argv) {
    // g_object_get(gtk_settings_get_default(), "gtk-application-prefer-dark-theme", &dark_mode_flag, NULL);
 
    // dark mode vs light-mode switch
-   GtkWidget *mode_switch = widget_from_preferences_builder("light-mode-dark-mode-switch");
+   // 20251215-PE was widget_from_preferences_builder("light-mode-dark-mode-switch");
+   // I think libadwaita is needed for mode switch
+   GtkWidget *mode_switch = nullptr;
    if (mode_switch) {
-   auto mode_switch_callback = +[] (GtkSwitch *sw, gboolean state, gpointer user_data) {
-        
+
+      auto mode_switch_callback = +[] (GtkSwitch *sw, gboolean state, gpointer user_data) {
+
         GtkSettings *settings = gtk_settings_get_default();
-        
+
         // 'state' is TRUE if the user just clicked "On"
         // 'state' is FALSE if the user just clicked "Off"
         if (state) {
@@ -1298,7 +1323,7 @@ int new_startup(int argc, char **argv) {
         }
 
         // Return FALSE to allow the switch to complete the animation/toggle
-        return gboolean(FALSE); 
+        return gboolean(FALSE);
         };
 
          gpointer *user_data = nullptr;

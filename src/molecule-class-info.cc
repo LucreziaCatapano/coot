@@ -21,6 +21,8 @@
  * Fifth Floor, Boston, MA, 02110-1301, USA.
  */
 
+#include "molecule-class-info.h"
+#include <filesystem>
 #ifdef USE_PYTHON
 #include <Python.h> // before system includes to stop "POSIX_C_SOURCE" redefined problems
 #endif
@@ -369,6 +371,18 @@ molecule_class_info_t::setup_internal() { // init
 
    draw_chiral_volume_outlier_markers_flag = false;
 }
+
+std::string
+coot::backup_file_info_t::get_timespec_string() const {
+
+   char buffer[80];
+   struct tm* timeinfo = localtime(&ctime.tv_sec);
+   strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);
+   std::ostringstream oss;
+   oss << buffer << "." << std::setfill('0') << std::setw(3) << (ctime.tv_nsec / 1000000);
+   return oss.str();
+}
+
 
 int
 molecule_class_info_t::update_molecule(std::string file_name, std::string cwd) {
@@ -2459,15 +2473,18 @@ molecule_class_info_t::local_b_factor_display(bool state,
                   for (int iat=0; iat<n_atoms; iat++) {
                      mmdb::Atom *at = residue_p->GetAtom(iat);
                      if (! at->isTer()) {
-                        float dx = at->x - screen_centre.x();
-                        float dy = at->y - screen_centre.y();
-                        float dz = at->z - screen_centre.z();
-                        float dd = dx * dx + dy * dy + dz * dz;
-                        if (dd < close_dist_sqrd) {
-                           int handle = -1; // not set
-                           std::string label = coot::util::float_to_string_using_dec_pl(at->tempFactor, 1);
-                           coot::generic_text_object_t gto(label, handle, at->x + 0.2, at->y, at->z);
-                           text_objects.push_back(gto);
+                        std::string ele = at->element;
+                        if (ele != " H") { // don't show B factors of H atoms - crowded and not useful
+                           float dx = at->x - screen_centre.x();
+                           float dy = at->y - screen_centre.y();
+                           float dz = at->z - screen_centre.z();
+                           float dd = dx * dx + dy * dy + dz * dz;
+                           if (dd < close_dist_sqrd) {
+                              int handle = -1; // not set
+                              std::string label = coot::util::float_to_string_using_dec_pl(at->tempFactor, 1);
+                              coot::generic_text_object_t gto(label, handle, at->x + 0.2, at->y, at->z);
+                              text_objects.push_back(gto);
+                           }
                         }
                      }
                   }
@@ -4736,7 +4753,7 @@ void
 molecule_class_info_t::make_bonds_type_checked(const std::set<int> &no_bonds_to_these_atom_indices,
                                                const char *caller) {
 
-   if (true)
+   if (false)
       std::cout << "debug:: ---- in make_bonds_type_checked(2args) --- start ---" << std::endl;
 
    if (false) {
@@ -5825,7 +5842,7 @@ molecule_class_info_t::replace_coords(const atom_selection_container_t &asc,
       return;
    }
 
-   make_backup();
+   make_backup("replace_coords()");
 
    // debug::
    if (debug) {
@@ -6049,7 +6066,7 @@ molecule_class_info_t::insert_coords(const atom_selection_container_t &asc) {
          std::cout << "ERROR:: matching asc.mol and atom_sel.mol in insert_coords\n";
          std::cout << "ERROR:: new algorithm required\n";
       } else {
-         make_backup(); // checks backup_this_molecule
+         make_backup("insert_coords()"); // checks backup_this_molecule
          insert_coords_internal(asc);
       }
    }
@@ -6199,7 +6216,7 @@ molecule_class_info_t::insert_coords_change_altconf(const atom_selection_contain
    // where n_similar_atoms is the number of alt confs we have for that atom.
 //    std::cout << "DEBUG:: ----------------- in insert_coords_change_altconf ------ " << std::endl;
 //    std::cout << "DEBUG:: IN insert_coords_change_altconf" << std::endl;
-   make_backup();
+   make_backup("insert_coords_change_altconf");
 
    // OK if we were from a shelx ins file, then we have to create a
    // new FVAR for this new alt conf thingy.
@@ -6676,7 +6693,7 @@ molecule_class_info_t::move_O_atom_of_added_to_residue(mmdb::Residue *res_p, con
                            o_this->z = new_o_pos_for_current_res_new.z();
 
                            moved = true;
-                           make_backup();
+                           make_backup("move_O_atom_of_added_to_residue()");
                         } else {
                            std::cout << "WARNING:: missing atoms in move_O_atom_of_added_to_residue " << std::endl;
                         }
@@ -6714,7 +6731,7 @@ molecule_class_info_t::add_coords(const atom_selection_container_t &asc) {
 
    // std::cout << "DEBUG:: ----------------- in add_coords ----------- " << std::endl;
 
-   make_backup();
+   make_backup("add_coords()");
 
    for (int i=0; i<asc.n_selected_atoms; i++) {
       int idone = 0;
@@ -7536,7 +7553,7 @@ molecule_class_info_t::add_pointer_atom(coot::Cartesian pos) {
          model_p->AddChain(chain_p);
       }
 
-      make_backup();
+      make_backup("add_pointer_atom()");
       std::string mol_chain_id(chain_p->GetChainID());
       // int ires_prev = chain_p->GetNumberOfResidues();
       int ires_prev = coot::util::max_resno_in_chain(chain_p).second;
@@ -7576,7 +7593,7 @@ molecule_class_info_t::add_typed_pointer_atom(coot::Cartesian pos, const std::st
    bool single_atom = true;
 
    // std::cout << "INFO:: adding atom of type " << type << " at " << pos << std::endl;
-   make_backup();
+   make_backup("add_typed_pointer_atom");
 
    if (have_atom_close_to_position(pos)) {
       return std::make_pair(false, std::string("Too close to an existing atom"));
@@ -8003,7 +8020,7 @@ molecule_class_info_t::add_baton_atom(coot::Cartesian pos,
       return NULL;
    }
 
-   make_backup();
+   make_backup("add_baton_atom()");
    mmdb::Chain *chain_p = NULL;
 
    // now look at the chains of this model, and find the chain that
@@ -8200,7 +8217,7 @@ molecule_class_info_t::add_dummy_atom(coot::Cartesian pos) {
       return;
    }
 
-   make_backup();
+   make_backup("add_dummy_atom");
 
    mmdb::Chain *chain_p = atom_sel.mol->GetChain(1,0);
 
@@ -8234,6 +8251,8 @@ molecule_class_info_t::add_dummy_atom(coot::Cartesian pos) {
 // backups:
 
 // Backup filename: return a stub.
+//
+// move to molecule-class-info-backups.cc
 //
 std::string
 molecule_class_info_t::get_save_molecule_filename(const std::string &dir) {
@@ -8314,8 +8333,9 @@ molecule_class_info_t::make_maybe_backup_dir(const std::string &backup_dir) cons
 // If successful, increase history_index and if not in a backup
 // increase max_history_index too.
 //
+// move this function to the mci-backups file.
 int
-molecule_class_info_t::make_backup() { // changes history details
+molecule_class_info_t::make_backup(const std::string &descr) { // changes history details
 
    graphics_info_t g;
    if (backup_this_molecule) {
@@ -8370,7 +8390,7 @@ molecule_class_info_t::make_backup() { // changes history details
             // all is hunkey-dorey.  Directory exists.
 
             std::string backup_file_name = get_save_molecule_filename(backup_dir);
-             std::cout << "INFO:: backup file name " << backup_file_name << std::endl;
+            logger.log(log_t::INFO, "backup file-name:", backup_file_name);
 
             mmdb::byte gz;
             if (g.backup_compress_files_flag) {
@@ -8395,6 +8415,9 @@ molecule_class_info_t::make_backup() { // changes history details
                   std::string warn;
                   warn = "WARNING:: WritePDBASCII failed! Return status ";
                   warn += istat;
+                  // 2025-12-22-PE - the function should return a value
+                  // with this warning message. This is not the place
+                  // for GUI code.
                   g.info_dialog_and_text(warn);
                }
             } else {
@@ -8402,7 +8425,7 @@ molecule_class_info_t::make_backup() { // changes history details
                istat = p.first;
             }
 
-            save_history_file_name(backup_file_name);
+            save_history_file_name(backup_file_name, descr);
             if (history_index == max_history_index)
                max_history_index++;
             history_index++;
@@ -8421,27 +8444,42 @@ molecule_class_info_t::make_backup() { // changes history details
 
 
 void
-molecule_class_info_t::save_history_file_name(const std::string &file) {
+molecule_class_info_t::save_history_file_name(const std::string &file_name,
+                                              const std::string &description) {
+
+   // this is called only from make_backup() (above).
+
+#if 0 // 2025-12-23-PE strange logic that I now don't understand
 
    // First, history_index is zero and the vec is zero,
    // normal service, then another backup: history_index is 1 and vec is 1.
    //
    if (history_index == int(history_filename_vec.size())) {
-      history_filename_vec.push_back(file);
+      coot::backup_file_info_t(file);
+      // history_filename_vec.push_back(file);
    } else {
       // we have gone back in history.
       //
       if (history_index < int(history_filename_vec.size())) {
-         history_filename_vec[history_index] = file;
+         history_filename_vec[history_index].backup_file_name = file;
       }
    }
+#endif
+
+   coot::backup_file_info_t bfi(file_name, description);
+   bfi.imol = imol_no;
+   bfi.valid_status = true;
+   clock_gettime(CLOCK_REALTIME, &bfi.ctime);
+
+   history_filename_vec.push_back(bfi);
 }
 
 // restore from (previous) backup
-void
-molecule_class_info_t::restore_from_backup(int history_offset,
-                                           const std::string &cwd) {
+bool molecule_class_info_t::restore_from_backup(int history_offset,
+                                                const std::string &cwd) {
 
+   // return success status
+   bool status = false;
 
    // consider passing this:
    bool v2_convert_flag = graphics_info_t::convert_to_v2_atom_names_flag;
@@ -8449,12 +8487,14 @@ molecule_class_info_t::restore_from_backup(int history_offset,
 
    int hist_vec_index = history_index + history_offset;
    if (int(history_filename_vec.size()) > hist_vec_index) {
-      std::cout << "restoring from backup " << history_filename_vec.size()
-                << " " << history_index << std::endl;
+      // std::cout << "INFO:: restoring from backup " << history_filename_vec.size()
+      //           << " " << history_index << std::endl;
+      logger.log(log_t::INFO, "restoring from backup", history_filename_vec.size(),
+            "history index: ", history_index);
       std::string save_name = name_;
       if (hist_vec_index < int(history_filename_vec.size()) &&
           hist_vec_index >= 0) {
-         std::string filename = history_filename_vec[hist_vec_index];
+         std::string filename = history_filename_vec[hist_vec_index].backup_file_name;
          //      history_index = hist_index;
          short int reset_rotation_centre = 0;
          // handle_read_draw_molecule uses graphics_info_t::n_molecules
@@ -8478,12 +8518,14 @@ molecule_class_info_t::restore_from_backup(int history_offset,
          save_state_command_strings_ = save_save_state;
          imol_no = save_imol;
          name_ = save_name;
+         status = true;
       }
    } else {
       std::cout << "not restoring from backup because "
                 << history_filename_vec.size()
                 << " " << history_index << std::endl;
    }
+   return status;
 }
 
 
@@ -8550,7 +8592,7 @@ molecule_class_info_t::apply_undo(const std::string &cwd) {
    if (history_index > 0) {
       int offset = -1;
       if (history_index == max_history_index) {
-         make_backup(); // increments history_index
+         make_backup("apply_undo"); // increments history_index
          offset--;
       }
       state = 1;
@@ -8872,7 +8914,7 @@ molecule_class_info_t::make_backup_from_outside() {  // when we have a multi mut
                                     // Rather crap that this needs to
                                     // be done externally, I think.
 
-   make_backup();
+   make_backup("from the outside");
 }
 
 
@@ -9165,7 +9207,7 @@ molecule_class_info_t::insert_waters_into_molecule(const coot::minimol::molecule
       max_resno = 0;
    }
    if (p.first || (i_have_solvent_chain_flag == 0)) {
-      make_backup();
+      make_backup("insert_waters_into_molecule");
       std::cout << "INFO:: Adding to solvent chain: " << chain_p->GetChainID()
                 << std::endl;
       int prev_max_resno = max_resno;
@@ -9227,7 +9269,7 @@ molecule_class_info_t::append_to_molecule(const coot::minimol::molecule &water_m
 
    if (atom_sel.n_selected_atoms > 0) {
 
-      make_backup();
+      make_backup("append_to_molecule()");
 
       // run over the chains in water_mol (there is only one for waters)
       //
@@ -9506,7 +9548,7 @@ molecule_class_info_t::add_multiple_dummies(mmdb::Chain *chain_p,
    coot::protein_geometry *geom_p = g.Geom_p();
 
    if (pos_position.size() > 0) {
-      make_backup(); // maybe
+      make_backup("add_multiple_dummies"); // maybe
    }
 
    for (unsigned int i=0; i<pos_position.size(); i++) {
@@ -9557,7 +9599,7 @@ molecule_class_info_t::add_multiple_dummies(const std::vector<coot::Cartesian> &
       if (n_chains > 0) {
          mmdb::Chain *chain_p = model_p->GetChain(0);
          if (pos_position.size() > 0) {
-            make_backup(); // maybe
+            make_backup("add_multiple_dummies"); // maybe
 
             for (unsigned int i=0; i< pos_position.size(); i++) {
                mmdb::Residue *res_p = new mmdb::Residue;
@@ -9906,7 +9948,7 @@ molecule_class_info_t::jed_flip_internal(coot::atom_tree_t &tree,
 
    std::string problem_string;
 
-   make_backup();
+   make_backup("jed_flip_internal");
 
    bool reverse = false; // reverse the moving dog<->tail fragment?
 
@@ -9954,7 +9996,7 @@ void
 molecule_class_info_t::translate_by(float x, float y, float z) {
 
    if (has_model()) {
-      make_backup();
+      make_backup("translate_by");
       for (int i=0; i<atom_sel.n_selected_atoms; i++) {
          atom_sel.atom_selection[i]->x += x;
          atom_sel.atom_selection[i]->y += y;
@@ -10090,7 +10132,7 @@ molecule_class_info_t::transform_by(mmdb::mat44 mat) {
    if (has_model()) {
       clipper::Coord_orth co;
       clipper::Coord_orth trans_pos;
-      make_backup();
+      make_backup("transform-by");
       clipper::Mat33<double> clipper_mat(mat[0][0], mat[0][1], mat[0][2],
                                          mat[1][0], mat[1][1], mat[1][2],
                                          mat[2][0], mat[2][1], mat[2][2]);
@@ -10127,7 +10169,7 @@ molecule_class_info_t::transform_by(mmdb::mat44 mat) {
 void
 molecule_class_info_t::transform_by(const clipper::RTop_orth &rtop) {
 
-   make_backup();
+   make_backup("transform-by-clipper-rtop");
    std::cout << "INFO:: coordinates transformed by orthogonal matrix: \n"
              << rtop.format() << std::endl;
    if (have_unit_cell) {
@@ -10172,7 +10214,7 @@ molecule_class_info_t::transform_by(const clipper::RTop_orth &rtop) {
 void
 molecule_class_info_t::transform_by(const clipper::RTop_orth &rtop, mmdb::Residue *residue_moving) {
 
-   make_backup();
+   make_backup("transform-by-with-residue-moving");
    std::cout << "INFO:: coordinates transformed_by: \n"
              << rtop.format() << std::endl;
    if (has_model()) {
@@ -10215,7 +10257,7 @@ molecule_class_info_t::transform_zone_by(const std::string &chain_id, int resno_
                                          bool make_backup_flag) {
 
    if (make_backup_flag)
-      make_backup();
+      make_backup("transform_zone_by");
 
    bool transformed_something = 0;
    if (resno_end < resno_start)
@@ -10642,7 +10684,7 @@ molecule_class_info_t::mark_atom_as_fixed(const coot::atom_spec_t &atom_spec, bo
 int
 molecule_class_info_t::move_waters_to_around_protein() {
 
-   make_backup();
+   make_backup("move_waters_to_around_protein");
    int r = coot::util::move_waters_around_protein(atom_sel.mol);
    have_unsaved_changes_flag = 1;
    make_bonds_type_checked(__FUNCTION__);
@@ -10652,7 +10694,7 @@ molecule_class_info_t::move_waters_to_around_protein() {
 void
 molecule_class_info_t::move_hetgroups_to_around_protein() {
 
-   make_backup();
+   make_backup(__FUNCTION__);
    coot::util::move_hetgroups_around_protein(atom_sel.mol);
    have_unsaved_changes_flag = 1;
    make_bonds_type_checked(__FUNCTION__);

@@ -98,11 +98,28 @@ EXTRA_DIST = \
 	coot.i post-glade add-c-extern.sh blank.cc fix-gettext.sh \
 	mol-hierarchy.cc \
 	junk.cc coot-gtk2.defs coot-dox.cfg post-gtk2-glade.sh \
-	post-process-coot-wrap-guile.sh \
+	post-process-coot-wrap-guile.sh  \
 	post-process-coot-wrap-python.sh \
-	fixup-interface.h.sh \
-	coot_wrap_guile_pre.cc
+	fixup-interface.h.sh      \
+	coot_wrap_guile_pre.cc    \
+	coot_rsr_functions_docs.i \
+	coot_network_functions_docs.i \
+	coot_c_interface_docs.i   \
+	coot_cc_interface_docs.i
 
+regen-interface-docs-for-swig:
+	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output       coot_c_interface_docs.i $(top_srcdir)/src/doxygen/xml/c-interface_8h.xml
+	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output      coot_cc_interface_docs.i $(top_srcdir)/src/doxygen/xml/cc-interface_8hh.xml
+	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output     coot_rsr_functions_docs.i $(top_srcdir)/src/doxygen/xml/rsr-functions_8hh.xml
+	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output coot_network_functions_docs.i $(top_srcdir)/src/doxygen/xml/network-get_8hh.xml
+	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output coot_read_molecule_functions_docs.i $(top_srcdir)/src/doxygen/xml/read-molecule_8hh.xml
+
+# or
+# coot_c_interface_docs.i:
+#	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output  coot_c_interface_docs.i $(top_srcdir)/src/doxygen/xml/c-interface_8h.xml
+# coot_cc_interface_docs.i:
+#	python3 $(top_srcdir)/src/xml-to-swig-docstrings.py --output  coot_cc_interface_docs.i $(top_srcdir)/src/doxygen/xml/c-interface_8hh.xml
+# and add coot_c_interface_docs.i and coot_cc_interface_docs.ii to the coot_wrap_python_pre.cc dependencies
 
 # subpkgdatadir = $(pkgdatadir)
 # subpkgdata_DATA = dynarama.glade geometry_graphs_builder.glade
@@ -609,6 +626,7 @@ libcootsumo_la_SOURCES = \
 	glarea_tick_function.hh  \
 	globularize.hh           \
 	gphl-screen.cc           \
+	gphl-screen.hh           \
 	graphics-info.cc	 \
 	graphics-info-defines.cc \
 	graphics-info-defines-gtk4.cc \
@@ -671,6 +689,7 @@ libcootsumo_la_SOURCES = \
 	init-from-gtkbuilder.cc  \
         idles.hh                 \
 	interface.h              \
+	json-rpc.cc              \
 	key-bindings.cc	         \
 	key-bindings.hh	         \
 	manipulation-modes.hh    \
@@ -708,6 +727,7 @@ libcootsumo_la_SOURCES = \
 	molecule-class-info.cc		 \
 	molecule-class-info-alignment.cc \
 	molecule-class-info-analysis.cc \
+	molecule-class-info-backup.cc   \
 	molecule-class-info-bonds.cc    \
 	molecule-class-info-build.cc	\
 	molecule-class-info-maps.cc	\

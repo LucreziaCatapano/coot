@@ -133,8 +133,8 @@ lsq_dialog_values_t graphics_info_t::lsq_dialog_values;
 
 
 // side by side stereo?
-short int graphics_info_t::in_side_by_side_stereo_mode = 0;
-short int graphics_info_t::in_wall_eyed_side_by_side_stereo_mode = 0;
+bool graphics_info_t::in_side_by_side_stereo_mode = false;
+bool graphics_info_t::in_wall_eyed_side_by_side_stereo_mode = false;
 
 // display list for maps?
 short int graphics_info_t::display_lists_for_maps_flag = 0;
@@ -215,7 +215,7 @@ short int graphics_info_t::smooth_scroll_on = 0;
 int    graphics_info_t::smooth_scroll_current_step = 0;
 coot::Cartesian graphics_info_t::smooth_scroll_delta;
 int    graphics_info_t::mouse_just_cliked     = 0;
-float  graphics_info_t::user_defined_rotation_centre_crosshairs_size_scale_factor = 1.0;
+float  graphics_info_t::user_defined_rotation_centre_crosshairs_size_scale_factor = 0.05;
 glm::vec4 graphics_info_t::rotation_centre_cross_hairs_colour = glm::vec4(0.8, 0.8, 0.8, 1.0);
 short int graphics_info_t::quanta_like_zoom_flag = 0;
 int    graphics_info_t::go_to_ligand_animate_view_n_steps = 50;
@@ -1285,7 +1285,7 @@ bool      graphics_info_t::do_flat_shading_for_solid_density_surface = 1;
 // stereo?
 int graphics_info_t::display_mode = coot::MONO_MODE;
 float graphics_info_t::hardware_stereo_angle_factor = 1.0;
-graphics_info_t::stereo_eye_t graphics_info_t::which_eye = graphics_info_t::FRONT_EYE;
+graphics_info_t::stereo_eye_t graphics_info_t::which_eye = graphics_info_t::stereo_eye_t::MONO;
 
 // remote controlled coot
 int graphics_info_t::try_port_listener = 0;
@@ -1866,4 +1866,4 @@ coot::inchikey_store_t graphics_info_t::inchikey_store;
 std::pair<bool, std::string> graphics_info_t::servalcat_fofc    = std::pair<bool, std::string> (false, "");
 std::pair<bool, std::string> graphics_info_t::servalcat_refine  = std::pair<bool, std::string> (false, "");
 
-
+std::string graphics_info_t::current_alt_conf = "";

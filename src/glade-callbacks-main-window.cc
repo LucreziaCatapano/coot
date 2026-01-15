@@ -776,6 +776,19 @@ on_graphics_grab_focus_button_clicked (GtkButton       *button,
 
 }
 
+extern "C" G_MODULE_EXPORT
+void
+on_alt_conf_switcher_button_clicked(GtkButton       *button,
+                                    gpointer         user_data) {
+
+   graphics_info_t g;
+   std::pair<int, mmdb::Atom *> aa = g.get_active_atom();
+   int imol = aa.first;
+   if (is_valid_model_molecule(imol)) {
+      clear_non_drawn_bonds(imol);
+   }
+}
+
 #include "cc-interface-graphics.hh"
 
 extern "C" G_MODULE_EXPORT
@@ -1045,7 +1058,7 @@ on_acedrg_link_ok_button_clicked(GtkButton       *button,
       ss += atom_name_first;
       ss += " ";
       if (!cif_file_name_1.empty())
-         ss += std::string("FILE-1 ") + cif_file_name_1;
+         ss += std::string("FILE-1 ") + cif_file_name_1 + " ";
 
       ss += "RES-NAME-2 ";
       ss += residue_name_second;
@@ -1101,7 +1114,7 @@ on_acedrg_link_ok_button_clicked(GtkButton       *button,
                   ss += std::string("CHANGE BOND ") + std::string(change_bond_order_first_atom_1) + std::string(" ") +
                      std::string(change_bond_order_first_atom_2) + std::string(" ") + std::string(cbo_first) + " 1 ";
 
-      ss += "RES-NAME-2 ";
+      ss += " RES-NAME-2 ";
       ss += residue_name_second;
       ss += " ";
       ss += "ATOM-NAME-2 ";

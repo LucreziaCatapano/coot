@@ -24,6 +24,8 @@
  * Fifth Floor, Boston, MA, 02110-1301, USA.
  */
 
+#include <cstddef>
+#include "geometry/residue-and-atom-specs.hh"
 #ifdef USE_PYTHON
 #include <Python.h>  // before system includes to stop "POSIX_C_SOURCE" redefined problems
 #include "python-3-interface.hh"
@@ -523,7 +525,100 @@ int decoloned_backup_file_names_state() {
 }
 
 
+/*! \brief Make a backup for a model molecule
+ *
+ * @param imol the model molecule index
+ * @description a description that goes along with this back point
+ */
+int make_backup_checkpoint(int imol, const char *description) {
 
+   int backup_index = -1;
+   if (is_valid_model_molecule(imol)) {
+      std::string ss(description);
+      backup_index = graphics_info_t::molecules[imol].make_backup_checkpoint(ss);
+   }
+   return backup_index;
+}
+
+/*! \brief Restore molecule from backup
+ * 
+ * restore model @p imol to checkpoint backup @p backup_index
+ *
+ * @param imol the model molecule index
+ * @param backup_index the backup index to restore to
+ */
+int restore_to_backup_checkpoint(int imol, int backup_index) {
+
+   backup_index = -1;
+   if (is_valid_model_molecule(imol)) {
+      backup_index = graphics_info_t::molecules[imol].restore_to_backup_checkpoint(backup_index);
+   }
+   return backup_index;
+}
+
+#ifdef USE_PYTHON
+/*! \brief Compare current model to backup
+ * 
+ * @param imol the model molecule index
+ * @param backup_index the backup index to restore to
+ * @return a Python dict, with 2 items, a "status" which is either "ok" 
+ *         or "fail" or "bad-index" and a list of residue specs for residues
+ *         that have at least one atom in a different place (which might be empty).
+ */
+PyObject *compare_current_model_to_backup(int imol, int backup_index) {
+
+   PyObject *d = PyDict_New();
+   if (is_valid_model_molecule(imol)) {
+      // How do I return "bad backup_index?" Use a pair.
+      std::pair<bool, std::vector<coot::residue_spec_t> > mvp = graphics_info_t::molecules[imol].compare_current_model_to_backup(backup_index);
+      if (mvp.first) {
+         std::vector<coot::residue_spec_t> mv = mvp.second;
+         PyObject *l = PyList_New(mv.size());
+         for (unsigned int i=0; i<mv.size(); i++) {
+             const auto &rs(mv[i]);
+             PyObject *s = residue_spec_to_py(rs);
+             PyList_SetItem(l, i, s);
+         }
+         PyDict_SetItemString(d, "moved-residues-list", l);
+         PyDict_SetItemString(d, "status", myPyString_FromString("ok"));
+      } else {
+         PyDict_SetItemString(d, "status", myPyString_FromString("bad-index"));
+      }
+   } else {
+      PyDict_SetItemString(d, "status", myPyString_FromString("fail"));
+   }
+   return d;
+}
+#endif
+
+#ifdef USE_PYTHON
+/*! \brief Get backup info
+ * 
+ * @param imol the model molecule index
+ * @param backup_index the backup index to restore to
+ * @return a Python list of the given description (str)
+ *         and a timestamp (str).
+ */
+PyObject *get_backup_info(int imol, int backup_index) {
+
+   PyObject *r = PyList_New(0);
+   if (is_valid_model_molecule(imol)) {
+      auto backup_info = graphics_info_t::molecules[imol].get_backup_info(backup_index);
+      r = PyList_New(2);
+      PyObject *d  = myPyString_FromString(backup_info.description.c_str());
+      PyObject *dt = myPyString_FromString(backup_info.get_timespec_string().c_str());
+      PyList_SetItem(r, 0, d);
+      PyList_SetItem(r, 1, dt);
+   }
+   return r;
+}
+#endif
+
+void print_backup_history_info(int imol) {
+   if (is_valid_model_molecule(imol)) {
+      graphics_info_t::molecules[imol].print_backup_history_info();
+   }
+}
 
 /*  ----------------------------------------------------------------------- */
 /*                  rotate/translate buttons                                */
@@ -726,33 +821,32 @@ SCM CG_spin_search_scm(int imol_model, int imol_map) {
 /*  ----------------------------------------------------------------------- */
 /*                  delete residue                                          */
 /*  ----------------------------------------------------------------------- */
-void delete_residue(int imol, const char *chain_id, int resno, const char *inscode) {
+int delete_residue(int imol, const char *chain_id, int resno, const char *inscode) {
+
+   int status = 0;
 
    if (is_valid_model_molecule(imol)) {
       graphics_info_t g;
       int model_number_ANY = mmdb::MinInt4;
       std::string ic(inscode);
-      short int istat = g.molecules[imol].delete_residue(model_number_ANY, chain_id, resno, ic);
-
+      status = g.molecules[imol].delete_residue(model_number_ANY, chain_id, resno, ic);
       g.update_validation(imol);
 
-      if (istat) {
-	 // now if the go to atom widget was being displayed, we need to
-	 // redraw the residue list and atom list (if the molecule of the
-	 // residue and atom list is the molecule that has just been
-	 // deleted)
+      if (status) {
+         // now if the go to atom widget was being displayed, we need to
+         // redraw the residue list and atom list (if the molecule of the
+         // residue and atom list is the molecule that has just been
+         // deleted)
 
-	 g.update_go_to_atom_window_on_changed_mol(imol);
-
-	 if (! is_valid_model_molecule(imol)) {
-
-	    g.delete_molecule_from_display_manager(imol, false);
+         g.update_go_to_atom_window_on_changed_mol(imol);
+         if (! is_valid_model_molecule(imol)) {
+            g.delete_molecule_from_display_manager(imol, false);
          }
+         graphics_draw();
 
-	 graphics_draw();
       } else {
-	 std::cout << "failed to delete residue " << chain_id
-		   << " " << resno << "\n";
+         std::cout << "failed to delete residue " << chain_id
+                   << " " << resno << "\n";
       }
       std::vector<std::string> command_strings;
       command_strings.push_back("delete-residue");
@@ -764,6 +858,7 @@ void delete_residue(int imol, const char *chain_id, int resno, const char *insco
    } else {
       add_status_bar_text("Oops bad molecule from whcih to delete a residue");
    }
+   return status;
 }
 
 void delete_residue_hydrogens(int imol,
@@ -2483,6 +2578,43 @@ int n_chains(int imol) {
    return nchains;
 }
 
+#ifdef USE_PYTHON
+/*! \brief get the chain ids of molecule number imol
+
+  @param imol is the molecule index
+  @return a list of the the chain ids or None on failure
+*/
+PyObject *get_chain_ids_py(int imol) {
+
+   PyObject *r = Py_False;
+   if (is_valid_model_molecule(imol)) {
+      mmdb::Manager *mol = graphics_info_t::molecules[imol].atom_sel.mol;
+      int imod = 1;
+      mmdb::Model *model_p = mol->GetModel(imod);
+      std::vector<std::string> chain_ids;
+      if (model_p) {
+         int n_chains = model_p->GetNumberOfChains();
+         for (int ichain=0; ichain<n_chains; ichain++) {
+            mmdb::Chain *chain_p = model_p->GetChain(ichain);
+            chain_ids.push_back(chain_p->GetChainID());
+         }
+      }
+      if (! chain_ids.empty()) {
+         r = PyList_New(chain_ids.size());
+         for (unsigned int i=0; i<chain_ids.size(); i++) {
+            PyObject *o = myPyString_FromString(chain_ids[i].c_str());
+            PyList_SetItem(r, i, o);
+         }
+      }
+   }
+   if (PyBool_Check(r)) {
+     Py_INCREF(r);
+   }
+   return r;
+}
+#endif
+
+
 
 /*! \brief return the number of models in molecule number imol
 
@@ -4134,19 +4266,20 @@ PyObject *missing_atom_info_py(int imol) {
       graphics_info_t g;
       short int missing_hydrogens_flag = 0;
       coot::util::missing_atom_info m_i_info =
-	 g.molecules[imol].missing_atoms(missing_hydrogens_flag, g.Geom_p());
+         g.molecules[imol].missing_atoms(missing_hydrogens_flag, g.Geom_p());
       for (unsigned int i=0; i<m_i_info.residues_with_missing_atoms.size(); i++) {
-	 int resno =  m_i_info.residues_with_missing_atoms[i]->GetSeqNum();
-	 std::string chain_id = m_i_info.residues_with_missing_atoms[i]->GetChainID();
-	 std::string residue_type = m_i_info.residues_with_missing_atoms[i]->GetResName();
-	 std::string inscode = m_i_info.residues_with_missing_atoms[i]->GetInsCode();
-	 std::string altconf("");
-	 PyObject *l = PyList_New(0);
-	 PyList_Append(l, myPyString_FromString(chain_id.c_str()));
-	 PyList_Append(l, PyLong_FromLong(resno));
-	 PyList_Append(l, myPyString_FromString(inscode.c_str()));
-	 PyList_Append(r, l);
-	 Py_XDECREF(l);
+         int resno =  m_i_info.residues_with_missing_atoms[i]->GetSeqNum();
+         std::string chain_id = m_i_info.residues_with_missing_atoms[i]->GetChainID();
+         std::string residue_type = m_i_info.residues_with_missing_atoms[i]->GetResName();
+         std::string inscode = m_i_info.residues_with_missing_atoms[i]->GetInsCode();
+         std::string altconf("");
+         // 20260112-PE use PyList_SetItem() for l.
+         PyObject *l = PyList_New(0);
+         PyList_Append(l, myPyString_FromString(chain_id.c_str()));
+         PyList_Append(l, PyLong_FromLong(resno));
+         PyList_Append(l, myPyString_FromString(inscode.c_str()));
+         PyList_Append(r, l);
+         Py_XDECREF(l);
       }
    }
    if (PyBool_Check(r)) {
@@ -4863,6 +4996,7 @@ void c_accept_moving_atoms() {
    graphics_info_t g;
    while (g.continue_threaded_refinement_loop)
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
+   g.clear_hud_buttons();
    g.accept_moving_atoms();
    g.clear_moving_atoms_object();
 
@@ -4893,7 +5027,10 @@ PyObject *accept_moving_atoms_py() {
 
    coot::refinement_results_t rr = g.accept_moving_atoms(); // does a g.clear_up_moving_atoms();
    rr.show();
-   g.clear_moving_atoms_object();
+   if (g.use_graphics_interface_flag) {
+      g.clear_hud_buttons();
+      g.clear_moving_atoms_object();
+   }
    PyObject *o = g.refinement_results_to_py(rr);
    return o;
 }

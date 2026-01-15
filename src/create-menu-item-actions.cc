@@ -897,6 +897,7 @@ make_link_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    graphics_info_t g;
    const std::string &alt_conf_1 = g.in_range_first_picked_atom.alt_conf;
    const std::string &alt_conf_2 = g.in_range_second_picked_atom.alt_conf;
+   bool done =  false;
 
    if (alt_conf_1 == alt_conf_2) {
 
@@ -920,6 +921,7 @@ make_link_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                               g.in_range_second_picked_atom,
                               link_name, dist, *g.Geom_p());
                   g.graphics_draw();
+                  done = true;
                } else {
                   std::cout << "ERROR:: Missing atom " << std::endl;
                }
@@ -932,6 +934,12 @@ make_link_action(G_GNUC_UNUSED GSimpleAction *simple_action,
       }
    } else {
       add_status_bar_text("Mismatched alt-confs - doing nothing");
+   }
+
+   if (! done) {
+      std::string mess = "Use Range/Pair to define the linked atoms";
+      add_status_bar_text(mess);
+      g.ephemeral_overlay_label(mess);
    }
 }
 
@@ -3061,6 +3069,18 @@ calculate_updating_maps_action(G_GNUC_UNUSED GSimpleAction *simple_action,
 }
 
 
+void
+alt_conf_switcher_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                         G_GNUC_UNUSED GVariant *parameter,
+                         G_GNUC_UNUSED gpointer user_data) {
+
+   GtkWidget *button = widget_from_builder("alt-conf-switcher-button");
+   if (button) {
+      gtk_widget_set_visible(button, TRUE);
+      graphics_info_t g;
+      g.ephemeral_overlay_label("Use Ctrl-A key for alt-conf switching");
+   }
+}
 
 void
 background_black_action(G_GNUC_UNUSED GSimpleAction *simple_action,
@@ -4383,7 +4403,7 @@ about_coot_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                   G_GNUC_UNUSED GVariant *parameter,
                   G_GNUC_UNUSED gpointer user_data) {
 
-   std::cout << "About Coot" << std::endl;
+   //std::cout << "About Coot" << std::endl;
 
    GtkWidget *dialog = widget_from_builder("about_dialog");
    if (dialog) {
@@ -5895,6 +5915,7 @@ create_actions(GtkApplication *application) {
    // Draw
 
    // these could be done with a parameter add_action_with_param()
+   add_action(         "alt_conf_switcher_action",         alt_conf_switcher_action);
    add_action(          "background_black_action",          background_black_action);
    add_action(   "background_nearly_black_action",   background_nearly_black_action);
    add_action(     "background_light_grey_action",     background_light_grey_action);

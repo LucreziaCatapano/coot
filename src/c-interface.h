@@ -60,7 +60,7 @@
   But, we need that function to set the filename in mol_info, which
   is a c++ class.
 
-p  So we need to have this function external for c++ linking.
+  So we need to have this function external for c++ linking.
 
 */
 
@@ -119,6 +119,7 @@ void try_load_python_extras_dir();
 /*!  \brief tell coot that you prefer to run python scripts if/when
   there is an option to do so. */
 void set_prefer_python();
+
 /*! \brief the python-prefered mode.
 
 This is available so that the scripting functions know whether on not
@@ -129,7 +130,7 @@ which is used elsewhere to stop python functions adding to the gui,
 when guile-gtk functions have alread done so.  We should clean up this
 (rather obscure) interface at some stage.
 
-return 1 for python is prefered, 0 for not. */
+@return 1 for python is prefered, 0 for not. */
 int prefer_python();
 
 /*! \} */
@@ -160,19 +161,22 @@ void set_show_paths_in_display_manager(int i);
 
    What is the internal flag?
 
-   @return 1 for "yes, display paths" , 0 for not
+   @return 1 for "yes, display paths", 0 for not
  */
 int show_paths_in_display_manager_state();
 
 /*! \brief add an extension to be treated as coordinate files
+   @param ext the extension to be added
 */
 void add_coordinates_glob_extension(const char *ext);
 
 /*! \brief add an extension to be treated as data (reflection) files
+   @param ext the extension to be added
 */
 void add_data_glob_extension(const char *ext);
 
 /*! \brief add an extension to be treated as geometry dictionary files
+   @param ext the extension to be added
 */
 void add_dictionary_glob_extension(const char *ext);
 
@@ -181,14 +185,17 @@ void add_dictionary_glob_extension(const char *ext);
 void add_map_glob_extension(const char *ext);
 
 /*! \brief remove an extension to be treated as coordinate files
+   @param ext the extension to be added
 */
 void remove_coordinates_glob_extension(const char *ext);
 
 /*! \brief remove an extension to be treated as data (reflection) files
+   @param ext the extension to be removed
 */
 void remove_data_glob_extension(const char *ext);
 
 /*! \brief remove an extension to be treated as geometry dictionary files
+   @param ext the extension to be removed
 */
 void remove_dictionary_glob_extension(const char *ext);
 
@@ -211,17 +218,14 @@ void unset_sticky_sort_by_date();
 set to 1 to pre-filter, [0 (off, non-pre-filtering) is the default */
 void set_filter_fileselection_filenames(int istate);
 
-
 /*! \brief, return the state of the above variable */
 int filter_fileselection_filenames_state();
 
 /*! \brief is the given file name suitable to be read as coordinates? */
 short int file_type_coords(const char *file_name);
 
-
 /*! \brief display the open coordinates dialog */
 void open_coords_dialog();
-
 
 /*! \brief this flag set chooser as default for windows, otherwise use
   selector 0 is selector 1 is chooser */
@@ -321,21 +325,35 @@ given molecule.
 */
 int n_models(int imol);
 
-/*! \brief  number of chains in molecule number imol
+/*! \brief get the number of chains in molecule number imol
 
-   @return the number of chains*/
+  @param imol is the molecule index
+  @return the number of chains
+*/
 int n_chains(int imol);
+
+#ifdef USE_PYTHON
+/*! \brief get the chain ids of molecule number imol
+
+  @param imol is the molecule index
+  @return a list of the the chain ids or False on failure
+*/
+PyObject *get_chain_ids_py(int imol);
+#endif
 
 /*! \brief is this a solvent chain? [Raw function]
 
    This is a raw interface function, you should generally not use
    this, but instead use (is-solvent-chain? imol chain-id)
 
+   This wraps the mmdb function isSolventChain().
+
+   @param imol is the molecule index
+   @param chain_id is the chain id (e.g. "A" or "B")
    @return -1 on error, 0 for no, 1 for is "a solvent chain".  We
    wouldn't want to be doing rotamer searches and the like on such a
    chain.
 
-   This wraps the mmdb function isSolventChain().
  */
 int is_solvent_chain_p(int imol, const char *chain_id);
 
@@ -969,6 +987,8 @@ positive blobs.  Useful function if bound to a key.
 The refinement map must be set.  (We can't check all maps because they
 are not (or may not be) on the same scale).
 
+Not useful for MCP. For interactive use only.
+
    @return 1 if successfully found a blob and moved there.
    return 0 if no move.
 */
@@ -981,7 +1001,10 @@ SCM select_atom_under_pointer_scm();
 #endif
 
 #ifdef USE_PYTHON
-/*! \brief return Python false or a list of molecule number and an atom spec  */
+/*! \brief return Python false or a list of molecule number and an atom spec
+ *
+ * Not useful for MCP. For interactive use only.
+*/
 PyObject *select_atom_under_pointer_py();
 #endif
 #endif /* __cplusplus */
@@ -1057,8 +1080,15 @@ void turn_on_backup(int imol);
  return 0 for backups off, 1 for backups on, -1 for unknown */
 int  backup_state(int imol);
 
-/*! \brief apply undo - the "Undo" button callback */
+/*! \brief apply undo - the "Undo" button callback
+ *
+ * undo the most recent modification on the model
+ * set in set_undo_molecule().
+ *
+ * @return 1 on succesful undo, 0 on failed to undo.
+ */
 int apply_undo();		/* "Undo" button callback */
+
 /*! \brief apply redo - the "Redo" button callback */
 int apply_redo();
 
@@ -1068,7 +1098,6 @@ void set_have_unsaved_changes(int imol);
 /*! \brief does molecule number imol have unsaved changes?
  @return -1 on bad imol, 0 on no unsaved changes, 1 on has unsaved changes */
 int have_unsaved_changes_p(int imol);
-
 
 /*! \brief set the molecule to which undo operations are done to
   molecule number imol */
@@ -1102,6 +1131,53 @@ int  backup_compress_files_state();
 
 /*! \brief set if backup files will be compressed or not using gzip */
 void  set_backup_compress_files(int state);
+
+/*! \brief Make a backup for a model molecule
+ *
+ * @param imol the model molecule index
+ * @description a description that goes along with this back point
+ * @return the index of the backup, or -1 on failure
+ */
+int make_backup_checkpoint(int imol, const char *description);
+
+/*! \brief Restore molecule from backup
+ * 
+ * restore model @p imol to checkpoint backup @p backup_index
+ *
+ * @param imol the model molecule index
+ * @param backup_index the backup index to restore to
+ * @return the index of the backup, or -1 on failure
+ */
+int restore_to_backup_checkpoint(int imol, int backup_index);
+
+#ifdef USE_PYTHON
+/*! \brief Compare current model to backup
+ * 
+ * @param imol the model molecule index
+ * @param backup_index the backup index to restore to
+ * @return a Python dict, with 2 items, a "status" which is either "ok" 
+ *         or "error" or "bad-index". The other key is "moved-residues-list",
+ *         the value for which is a list of residue specs for residues
+ *         that have at least one atom in a different place (which might be empty).
+ */
+PyObject *compare_current_model_to_backup(int imol, int backup_index);
+#endif
+
+/*! \brief Print the history info
+ * 
+ */
+void print_backup_history_info(int imol);
+
+#ifdef USE_PYTHON
+/*! \brief Get backup info
+ * 
+ * @param imol the model molecule index
+ * @param backup_index the backup index to restore to
+ * @return a Python list of the given description (str)
+ *         and a timestamp (str).
+ */
+PyObject *get_backup_info(int imol, int backup_index);
+#endif
 
 /*! \} */
 
@@ -3400,9 +3476,14 @@ void remove_omega_torsion_restriants();
 void set_refine_hydrogen_bonds(int state);
 
 
-/*! \brief set immediate replacement mode for refinement and
-  regularization.  You need this (call with istate=1) if you are
-  scripting refinement/regularization  */
+/*! \brief set immediate replacement mode for refinement and regularization
+ *
+ * This can enable synchronous refinement (with istate = 1).
+ * You need this (call with istate=1) if you are
+ * scripting refinement/regularization
+ *
+ * @param istate set the state of immediate-refinemnt 
+ * */
 void set_refinement_immediate_replacement(int istate);
 
 /*! \brief query the state of the immediate replacement mode */
@@ -3421,8 +3502,10 @@ void set_residue_selection_flash_frames_number(int i);
 
 /*! \brief accept the new positions of the regularized or refined residues
 
-    If you are scripting refinement and/or regularization, this is the
+    If you are scripting refinement and/or regularization, this is not the
     function that you need to call after refine-zone or regularize-zone.
+    If you are using Python, use accept_moving_atoms_py() and that will
+    provide a return value that may be of some use.
 */
 void c_accept_moving_atoms();
 
@@ -4053,9 +4136,10 @@ int  show_pointer_distances_state();
 /*! \{ */
 /*! \brief scale the view by f
 
+   Values outside the range 0.5 to 1.8 have no effect.
    external (scripting) interface (with redraw)
     @param f the smaller f, the bigger the zoom, typical value 1.3.
-    Values outside the range 0.5 to 1.8 are filtered out */
+    */
 void scale_zoom(float f);
 /* internal interface */
 void scale_zoom_internal(float f);
@@ -4773,7 +4857,11 @@ void set_ligand_water_to_protein_distance_limits(float f1, float f2);
 void set_ligand_water_n_cycles(int i);
 void set_write_peaksearched_waters();
 
-/*! \brief find blobs  */
+/*! \brief find blobs
+ *
+ * Not useful for MCP. For interactive use only.
+ *
+ * */
 void execute_find_blobs(int imol_model, int imol_for_map, float cut_off, short int interactive_flag);
 
 /* there is also a c++ interface to find blobs, which returns a vector
@@ -4787,6 +4875,12 @@ If there is more than one atom in the specified resiue, don't do
 anything.
 
 If the given atom does not have an alt conf of "", don't do anything.
+
+ @param imol the index of the molecule
+ @param chain_id the chain id
+ @param res_no the residue number
+ @param ins_code the insertion code of the residue
+
  */
 void split_water(int imol, const char *chain_id, int res_no, const char *ins_code);
 
@@ -5059,10 +5153,26 @@ int n_dots_sets(int imol);
 /*! \name Pep-flip Interface */
 /*! \{ */
 void do_pepflip(short int state); /* sets up pepflip, ready for atom pick. */
-/*! \brief pepflip the given residue */
-/* the residue with CO, for scripting interface. */
+
+/*! \brief pepflip (flip the peptide) of the given residue
+ *
+ *  Rotate the the carbonyl C and O atom of this residue and the N of the
+ *  next residue around a vector between the two CA atoms by 180 degrees.
+ *  This is often a useful modelling operation to create a different hypothesis
+ *  about the orientation of the main-chain atoms - that can then be used
+ *  for refinement. This can sometimes allow the model to be removed from
+ *  local minima of backbone conformations.
+ *
+ *  @param imol is the index of the model molecule
+ *  @param chain_id is the chain-id
+ *  @param res_no is the residue number (the residue that has the C and O atoms)
+ *  @param inscode the insertion code (typically "")
+ *  @param altconf the altconf (typically "")
+ *
+ */
 void pepflip(int imol, const char *chain_id, int resno, const char *inscode,
 	     const char *altconf);
+
 int pepflip_intermediate_atoms();
 int pepflip_intermediate_atoms_other_peptide();
 
@@ -5167,12 +5277,33 @@ call with i=1 for immediate addtion */
 void set_add_terminal_residue_immediate_addition(int i);
 
 /*! \brief Add a terminal residue
+ 
+  Some text here that should be a detailed-description
 
-residue type can be "auto" and immediate_add is recommended to be 1.
-
-@return 0 on failure, 1 on success */
+   @param residue_type can be "auto" 
+   @param immediate_add is recommended to be 1.
+   @return 0 on failure, 1 on success
+*/
 int add_terminal_residue(int imol, const char *chain_id, int residue_number,
                           const char *residue_type, int immediate_add);
+
+/*! \brief Add a residue to a chain or at the end of a fragment
+
+  This can be used to fill a gap of one residue or to fill a gap
+  of multiple residues by being called several times. Probably
+  RSR refinement would be useful after each call to this function in
+  such a case.
+
+  @param imol the molecule index
+  @param chain_id the chain ID
+  @param residue_number the residue number (of the existing residue to attach to)
+  @param residue_type the type for new residue, can be "auto"
+  @param immediate_add is recommended to be 1
+
+   @return 0 on failure, 1 on success
+*/
+int add_residue_by_map_fit(int imol, const char *chain_id, int residue_number,
+                           const char *residue_type, int immediate_add);
 
 /*! \brief Add a terminal nucleotide
 
@@ -5183,8 +5314,13 @@ int add_nucleotide(int imol, const char *chain_id, int res_no);
 
 /*! \brief Add a terminal residue using given phi and psi angles
 
-
-@return the success status, 0 on failure, 1 on success
+  @param imol the molecule index
+  @param chain_id the chain ID
+  @param residue_number the residue number (of the existing residue to attach to
+  @param residue_type can be "auto"
+  @param phi is phi in degrees
+  @param psi is psi in degrees
+  @return the success status, 0 on failure, 1 on success
  */
 int add_terminal_residue_using_phi_psi(int imol, const char *chain_id, int res_no,
 				       const char *residue_type, float phi, float psi);
@@ -5243,8 +5379,18 @@ void delete_residue_hydrogens_by_atom_index(int imol, int index, short int do_de
 /*! \brief delete residue range */
 void delete_residue_range(int imol, const char *chain_id, int resno_start, int end_resno);
 
-/*! \brief delete residue  */
-void delete_residue(int imol, const char *chain_id, int resno, const char *inscode);
+/*! \brief delete residue
+ *
+ * @param imol the molecule index
+ * @param chain_id the chain id
+ * @param res_no the residue number
+ * @param inscode the insertion code
+ *
+ * @return 0 on failure to delete, return 1 on residue successfully deleted
+ *
+ * */
+int delete_residue(int imol, const char *chain_id, int res_no, const char *inscode);
+
 /*! \brief delete residue with altconf  */
 void delete_residue_with_full_spec(int imol, int imodel, const char *chain_id, int resno, const char *inscode, const char *altloc);
 #ifdef __cplusplus
@@ -7256,7 +7402,16 @@ void set_visible_toolbar_multi_refine_cancel_button(short int state);
 /* button_type is one of "stop", "continue", "cancel"
    state is 1 for on, 0 for off. */
 void toolbar_multi_refine_button_set_sensitive(const char *button_type, short int state);
-/*! \brief load tutorial model and data  */
+
+/*! \brief load tutorial model and data
+ *
+ * Loads an example dataset - the sample is an RNase structure (model and maps) and is
+ * used for learning and testing.
+ *
+ * This is the standard Coot tutorial dataset for practicing model building
+ * and validation.
+ *
+ * */
 void load_tutorial_model_and_data();
 
 
@@ -7329,9 +7484,134 @@ void start_ligand_builder_gui();
 SCM all_molecule_rotamer_score(int imol);
 SCM all_molecule_ramachandran_score(int imol); /* a stub currently */
 #endif /* USE_GUILE */
+
 #ifdef USE_PYTHON
+/**
+ * @brief Compute rotamer score for an entire molecule and return result as a Python object.
+ *
+ * This wrapper computes the rotamer score information for molecule number @p imol
+ * and returns a Python list containing the numeric score and the number of
+ * rotamer-bearing residues.
+ *
+ * Parameters
+ * ----------
+ * @param imol
+ *     Model (molecule) index to analyze.
+ *
+ * Return value
+ * ------------
+ * Returns a NEW reference to a Python object. Two possible outcomes:
+ *
+ * - Success: a Python list of length 2 (PyList), with elements:
+ *     0 : float — overall rotamer score (PyFloat)
+ *     1 : int   — number of rotamer residues considered (PyLong)
+ *
+ * - Failure / invalid model index: Py_False (Python False).
+ *   The implementation INCREFs Py_False before returning, so the caller receives
+ *   a new reference in the failure case as well.
+ *
+ * Reference counting
+ * -----------------
+ * The returned PyObject* is a new reference. The caller is responsible for
+ * DECREFing it when finished.
+ *
+ * Notes
+ * -----
+ * - Callers should detect the failure case by testing with PyBool_Check (Py_False).
+ * - Ensure the Python GIL is held when calling this function from non-Python threads.
+ */
 PyObject *all_molecule_rotamer_score_py(int imol);
+#endif /* USE_PYTHON */
+
+#ifdef USE_PYTHON
+/**
+ * @brief Compute overall and per-residue Ramachandran statistics for a molecule and
+ *        return the results as a Python object.
+ *
+ * This wrapper gathers the Ramachandran score information computed for molecule
+ * number @p imol and returns a Python list with six elements describing the
+ * overall scores and per-residue details.
+ *
+ * Parameters
+ * ----------
+ * @param imol
+ *     Model (molecule) index to analyze.
+ *
+ * Return value
+ * ------------
+ * @return a NEW reference to a Python object. Two possible outcomes:
+ *
+ * - Success: a Python list of length 6 (PyList), with elements:
+ *     0 : float   — overall Ramachandran score (PyFloat)
+ *     1 : int     — number of residues considered (PyLong)
+ *     2 : float   — Ramachandran score restricted to non-secondary-structure residues (PyFloat)
+ *     3 : int     — number of residues used for the non-secondary-structure score (PyLong)
+ *     4 : int     — number of zero-score residues (PyLong)
+ *     5 : list    — info_by_residue: a list with one entry per residue (length == number of residues).
+ *                     Each entry is either:
+ *                       - a list of four items:
+ *                           [ phi_psi_list, residue_spec_py, residue_score, res_names_list ]
+ *                             * phi_psi_list: list of two floats [phi, psi]
+ *                             * residue_spec_py: Python representation of the residue spec (see residue_spec_to_py)
+ *                             * residue_score: float (PyFloat)
+ *                             * res_names_list: list of three strings [prev_res_name, this_res_name, next_res_name]
+ *                       - the integer -1 as a placeholder if per-residue info could not be computed for that index.
+ *
+ * - Failure / invalid model index: Py_False (Python False). The implementation INCREFs Py_False before returning,
+ *   so the caller receives a new reference in this case as well.
+ *
+ * Reference counting
+ * -----------------
+ * The returned PyObject* is a new reference. The caller is responsible for DECREFing it when finished.
+ *
+ * Notes
+ * -----
+ * - Callers should check the return with PyBool_Check to detect the failure case (Py_False).
+ * - Some per-residue entries may be -1 (an integer) if residue data was unavailable.
+ * - The function must be called with appropriate GIL handling if invoked from non-Python threads.
+ */
+
 PyObject *all_molecule_ramachandran_score_py(int imol); /* a stub currently */
+#endif /* USE_PYTHON */
+
+#ifdef USE_PYTHON
+/**
+ * @brief Return the Ramachandran region annotation for a molecule as a Python list.
+ *
+ * This wrapper returns per-residue region information computed for molecule @p imol.
+ * It queries the internal Ramachandran scoring machinery and returns a Python list
+ * of (residue_spec, region_int) pairs for residues that lie in the computed region.
+ *
+ * Parameters
+ * ----------
+ * @param imol
+ *     Model (molecule) index to query.
+ *
+ * Return value
+ * ------------
+ * Returns a NEW reference to a Python object. There are two possible outcomes:
+ *
+ * - Success: a Python list (PyList) of length N > 0, where each element is a 2-tuple:
+ *     ( residue_spec_py, region_code )
+ *     * residue_spec_py: Python representation of the residue spec (as produced by residue_spec_to_py).
+ *     * region_code: integer (PyLong) — the integer label associated with that residue's Ramachandran region
+ *       (as provided by the underlying rama score/region computation).
+ *
+ * - Failure / no region entries / invalid model index: Py_False (Python False).
+ *   The implementation INCREFs Py_False before returning, so the caller receives a new reference
+ *   in this case as well.
+ *
+ * Reference counting
+ * -----------------
+ * The returned PyObject* is a new reference. The caller is responsible for DECREFing it when finished.
+ *
+ * Notes
+ * -----
+ * - Callers should detect the failure/empty case by testing with PyBool_Check (Py_False).
+ * - The exact meaning of the integer region_code is defined by the internal Ramachandran scoring code;
+ *   consult the implementation or documentation for interpretation of region codes.
+ * - Ensure the Python GIL is held when calling this function from non-Python threads.
+ */
 PyObject *all_molecule_ramachandran_region_py(int imol);
 #endif /* USE_PYTHON */
 #endif /* __cplusplus */
@@ -7340,7 +7620,9 @@ PyObject *all_molecule_ramachandran_region_py(int imol);
 
 This is not guaranteed to generate the correct biological entity, but will bring together
 molecules (chains/domains) that are dispersed throughout the unit cell.
-  */
+
+@param imol the molecule index.
+*/
 void globularize(int imol);
 
 #ifdef __cplusplus

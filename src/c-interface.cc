@@ -31,6 +31,7 @@
 #include <stdexcept>
 #include <utility>
 #include "glib.h"
+#include "pytypedefs.h"
 #ifdef USE_PYTHON
 #ifndef PYTHONH
 #define PYTHONH
@@ -958,6 +959,26 @@ int read_coordinates(const std::string &filename) {
    return handle_read_draw_molecule(filename);
 }
 
+int read_coordinates_as_string(const std::string &file_contents, const std::string &molecule_name) {
+
+#if !defined _MSC_VER
+   pid_t pid = getpid();
+#else
+   DWORD pid = GetCurrentProcessId();
+#endif
+   std::string pid_str = std::to_string(pid);
+   std::string fn("tmp-");
+   fn += pid_str;
+   fn += ".pdb";
+   std::ofstream f(fn);
+   f << file_contents;
+   f.close();
+   int imol = read_coordinates(fn);
+   if (is_valid_model_molecule(imol))
+      set_molecule_name(imol, molecule_name.c_str());
+   return imol;
+}
+
 
 //! set (or unset) GEMMI as the molecule parser. Currently by passing an int.
 void set_use_gemmi_as_model_molecule_parser(int state) {
@@ -1357,13 +1378,11 @@ void set_stereo_style(int mode) {
 
    if (mode == 0)
       graphics_info_t::stereo_style_2010 = true;
-   else 
+   else
       graphics_info_t::stereo_style_2010 = false;
 
    graphics_draw();
 }
-   
-
 
 void set_hardware_stereo_angle_factor(float f) {
    graphics_info_t::hardware_stereo_angle_factor = f;
@@ -4047,7 +4066,7 @@ int min_resno_in_chain(int imol, const char *chain_id) {
    return res_no_min;
 
 }
-   
+
 /*! \brief return the maximum residue number for imol chain chain_id */
 int max_resno_in_chain(int imol, const char *chain_id) {
 
@@ -5686,12 +5705,12 @@ void set_skeletonization_level_from_widget(const char *txt) {
 
    tmp = atof(txt);
 
-   if (tmp > 0.0 &&  tmp < 9999.9) { 
-      g.skeleton_level = tmp; 
+   if (tmp > 0.0 &&  tmp < 9999.9) {
+      g.skeleton_level = tmp;
    } else {
       std::cout << "Cannot interpret " << txt << " using 0.2 instead" << std::endl;
-      g.skeleton_level = 0.2; 
-   } 
+      g.skeleton_level = 0.2;
+   }
 
    for (int imol=0; imol<g.n_molecules(); imol++) {
       if (g.molecules[imol].has_xmap() &&
@@ -5718,10 +5737,10 @@ void set_skeleton_box_size_from_widget(const char *txt) {
 
    tmp = atof(txt);
 
-   if (tmp > 0.0 &&  tmp < 9999.9) { 
+   if (tmp > 0.0 &&  tmp < 9999.9) {
       g.skeleton_box_radius = tmp;
-   } else { 
-      
+   } else {
+
       std::cout << "Cannot interpret " << txt << " using 0.2 instead" << std::endl;
       g.skeleton_box_radius = 0.2;
    }
@@ -6359,7 +6378,7 @@ scale_zoom_internal(float f) {
    graphics_info_t g;
    if (f > 0.0)
       if (f < 1.8)
-         if (f > 0.5)
+         if (f >= 0.5)
             g.zoom *= f;
 
 }
@@ -6534,7 +6553,7 @@ void set_refinement_overall_weight_from_text(const char *t) {
       graphics_info_t::geometry_vs_map_weight = v;
       graphics_info_t g;
       g.poke_the_refinement();
-      
+
    } else {
       std::cout << "WARNING:: in set_refinement_overall_weight_from_text() t null " << std::endl;
    }
@@ -6542,7 +6561,7 @@ void set_refinement_overall_weight_from_text(const char *t) {
 }
 
 void set_refinement_torsion_weight_from_text(int idx, const char *t) {
-   
+
    graphics_info_t g;
    float v = coot::util::string_to_float(t);
    graphics_info_t::refine_params_dialog_torsions_weight_combox_position = idx;
@@ -6674,6 +6693,322 @@ int pyrun_simple_string(const char *python_command) {
 
 #ifdef USE_PYTHON
 
+/**
+ * Alternative version that extracts a return value from multi-line code.
+ * Wraps the code to capture the last expression's value.
+ *
+ * @param code Python code to execute
+ * @return PyObject* result (new reference), or NULL on error
+ */
+std::pair<PyObject*, std::string>
+execute_python_code_with_result_internal_old(const std::string &code) {
+
+   std::string error_message;
+   PyObject* result = NULL;
+
+   // Get __main__ namespace
+   PyObject* main_module = PyImport_AddModule("__main__");
+   if (!main_module) {
+      std::cerr << "ERROR: Failed to get __main__ module" << std::endl;
+      return std::make_pair(result, error_message);
+   }
+
+   PyObject* global_dict = PyModule_GetDict(main_module);
+   if (!global_dict) {
+      std::cerr << "ERROR: Failed to get __main__ dictionary" << std::endl;
+      return std::make_pair(result, error_message);
+   }
+
+   // Try as simple expression first
+   result = PyRun_String(code.c_str(), Py_eval_input, global_dict, global_dict);
+   if (result) {
+      return std::make_pair(result, error_message);
+   }
+
+   PyErr_Clear();
+
+   // For multi-line code, we need to handle it differently
+   // Execute the code
+   PyObject* exec_result = PyRun_String(code.c_str(), Py_file_input, global_dict, global_dict);
+
+   if (!exec_result) {
+        std::cerr << "ERROR: Python execution failed:" << std::endl;
+        if (PyErr_Occurred()) {
+           PyObject *ptype, *pvalue, *ptraceback;
+           PyErr_Fetch(&ptype, &pvalue, &ptraceback);
+           if (pvalue) {
+              PyObject* str_obj = PyObject_Str(pvalue);
+              if (str_obj) {
+                 const char* str = PyUnicode_AsUTF8(str_obj);
+                 if (str) {
+                     error_message = str;
+                 }
+                 Py_DECREF(str_obj);
+               }
+           }
+
+           Py_XDECREF(ptype);
+           Py_XDECREF(pvalue);
+           Py_XDECREF(ptraceback);
+           PyErr_Print();
+        }
+        return std::make_pair(result, error_message);
+   }
+
+   Py_DECREF(exec_result);  // This is typically Py_None
+
+    // Look for a special variable '__result__' that the code may have set
+    // Or just return None to indicate successful execution
+    PyObject* stored_result = PyDict_GetItemString(global_dict, "__result__");
+    if (stored_result) {
+        Py_INCREF(stored_result);  // GetItemString returns borrowed reference
+        return std::make_pair(stored_result, error_message);
+    }
+
+    // No specific result - return None to indicate success
+    // Py_RETURN_NONE;
+    return std::make_pair(Py_None, error_message);
+}
+
+#include "python-results-container.hh"
+
+execute_python_results_container_t execute_python_code_with_result_internal(const std::string &code) {
+
+   // Try as simple (one-line) expression
+
+   execute_python_results_container_t rc;
+   // Get __main__ namespace
+   PyObject* main_module = PyImport_AddModule("__main__");
+   if (!main_module) {
+      std::cerr << "ERROR: Failed to get __main__ module" << std::endl;
+      rc.error_message = "Failed to get __main__ module";
+      return rc;
+   }
+   PyObject* global_dict = PyModule_GetDict(main_module);
+   if (!global_dict) {
+      // std::cerr << "ERROR: Failed to get __main__ dictionary" << std::endl;
+      // return std::make_pair(result, error_message);
+      std::cerr << "ERROR: Failed to get __main__ dictionary" << std::endl;
+      rc.error_message = "Failed to get __main__ dictionary";
+      return rc;
+   }
+   // capture stdout - start
+   // Save original stdout and redirect to StringIO
+   PyRun_SimpleString("import sys, io");
+   PyRun_SimpleString("__original_stdout__ = sys.stdout");
+   PyRun_SimpleString("__stdout_capture__ = io.StringIO()");
+   PyRun_SimpleString("sys.stdout = __stdout_capture__");
+   // capture stdout - end
+
+   PyObject *exec_result = PyRun_String(code.c_str(), Py_eval_input, global_dict, global_dict);
+   rc.result = exec_result;
+   if (exec_result) {
+      // get captured outpuT
+      PyObject* stdout_obj = PyDict_GetItemString(global_dict, "__stdout_capture__");
+      if (stdout_obj) {
+         PyObject* captured = PyObject_CallMethod(stdout_obj, "getvalue", NULL);
+         if (captured) {
+            const char* output_str = PyUnicode_AsUTF8(captured);
+            if (output_str && strlen(output_str) > 0) {
+               std::cout << output_str;  // Print to terminal
+               rc.stdout = output_str;
+            }
+            Py_DECREF(captured);
+         }
+      }
+      // Restore stdout
+      PyRun_SimpleString("sys.stdout = __original_stdout__");
+
+   } else {
+
+      std::cerr << "ERROR: execute_python_code_with_result_internal(): Python execution failed" << std::endl;
+
+      // Import traceback module and format the exception
+      PyObject *ptype, *pvalue, *ptraceback;
+      // PyErr_Fetch() consumes the error.
+      PyErr_Fetch(&ptype, &pvalue, &ptraceback); // 2026-01-11-PE use PyErr_GetRaisedException() in future
+      PyObject* traceback_module = PyImport_ImportModule("traceback");
+      if (traceback_module && ptraceback) {
+         PyObject* format_exception = PyObject_GetAttrString(traceback_module, "format_exception");
+         if (format_exception) {
+             PyObject* formatted = PyObject_CallFunctionObjArgs(format_exception, ptype, pvalue, ptraceback, NULL);
+             if (formatted && PyList_Check(formatted)) {
+                 // Join all traceback lines into single string
+                 std::string full_traceback;
+                 Py_ssize_t size = PyList_Size(formatted);
+                 for (Py_ssize_t i = 0; i < size; i++) {
+                     PyObject* line = PyList_GetItem(formatted, i);
+                     const char* line_str = PyUnicode_AsUTF8(line);
+                     if (line_str) {
+                         full_traceback += line_str;
+                     }
+                 }
+                 rc.error_message = full_traceback;
+             }
+             Py_XDECREF(formatted);
+             Py_DECREF(format_exception);
+         }
+         Py_DECREF(traceback_module);
+
+      } else {
+         // Fallback to simple error message if traceback unavailable
+         if (pvalue) {
+            PyObject* str_obj = PyObject_Str(pvalue);
+            if (str_obj) {
+               const char* str = PyUnicode_AsUTF8(str_obj);
+               if (str) {
+                   rc.error_message = str;
+               }
+               Py_DECREF(str_obj);
+            }
+         }
+         Py_XDECREF(ptype);
+         Py_XDECREF(pvalue);
+         Py_XDECREF(ptraceback);
+      }
+   }
+   return rc;
+}
+
+execute_python_results_container_t execute_python_multiline_code_with_result_internal(const std::string &code) {
+
+   execute_python_results_container_t rc;
+
+   // Get __main__ namespace
+   PyObject* main_module = PyImport_AddModule("__main__");
+   if (!main_module) {
+      std::cerr << "ERROR: Failed to get __main__ module" << std::endl;
+      rc.error_message = "Failed to get __main__ module";
+      return rc;
+   }
+   PyObject* global_dict = PyModule_GetDict(main_module);
+   if (!global_dict) {
+      // std::cerr << "ERROR: Failed to get __main__ dictionary" << std::endl;
+      // return std::make_pair(result, error_message);
+      std::cerr << "ERROR: Failed to get __main__ dictionary" << std::endl;
+      rc.error_message = "Failed to get __main__ dictionary";
+      return rc;
+   }
+
+   // capture stdout - start
+   // Save original stdout and redirect to StringIO
+   PyRun_SimpleString("import sys, io");
+   PyRun_SimpleString("__original_stdout__ = sys.stdout");
+   PyRun_SimpleString("__stdout_capture__ = io.StringIO()");
+   PyRun_SimpleString("sys.stdout = __stdout_capture__");
+   // capture stdout - end
+
+   PyObject *exec_result = PyRun_String(code.c_str(), Py_file_input, global_dict, global_dict);
+   std::cout << "DEBUG:: ------------ exec_result " << exec_result << std::endl;
+   if (exec_result) {
+      rc.result = exec_result;
+      // get captured output
+      PyObject* stdout_obj = PyDict_GetItemString(global_dict, "__stdout_capture__");
+      if (stdout_obj) {
+         PyObject* captured = PyObject_CallMethod(stdout_obj, "getvalue", NULL);
+         if (captured) {
+            const char* output_str = PyUnicode_AsUTF8(captured);
+            if (output_str && strlen(output_str) > 0) {
+               std::cout << output_str;  // Print to terminal
+               rc.stdout = output_str;
+            }
+            Py_DECREF(captured);
+         }
+      }
+      // Restore stdout
+      PyRun_SimpleString("sys.stdout = __original_stdout__");
+
+   } else {
+
+      std::cerr << "ERROR: execute_python_multiline_code_with_result_internal(): Python execution failed" << std::endl;
+
+      // Import traceback module and format the exception
+      PyObject *ptype, *pvalue, *ptraceback;
+      // PyErr_Fetch() consumes the error.
+      PyErr_Fetch(&ptype, &pvalue, &ptraceback); // 2026-01-11-PE use PyErr_GetRaisedException() in future
+      PyObject* traceback_module = PyImport_ImportModule("traceback");
+      if (traceback_module && ptraceback) {
+         PyObject* format_exception = PyObject_GetAttrString(traceback_module, "format_exception");
+         if (format_exception) {
+             PyObject* formatted = PyObject_CallFunctionObjArgs(format_exception, ptype, pvalue, ptraceback, NULL);
+             if (formatted && PyList_Check(formatted)) {
+                 // Join all traceback lines into single string
+                 std::string full_traceback;
+                 Py_ssize_t size = PyList_Size(formatted);
+                 for (Py_ssize_t i = 0; i < size; i++) {
+                     PyObject* line = PyList_GetItem(formatted, i);
+                     const char* line_str = PyUnicode_AsUTF8(line);
+                     if (line_str) {
+                         full_traceback += line_str;
+                     }
+                 }
+                 rc.error_message = full_traceback;
+             }
+             Py_XDECREF(formatted);
+             Py_DECREF(format_exception);
+         }
+         Py_DECREF(traceback_module);
+
+      } else {
+         // Fallback to simple error message if traceback unavailable
+         if (pvalue) {
+            PyObject* str_obj = PyObject_Str(pvalue);
+            if (str_obj) {
+               const char* str = PyUnicode_AsUTF8(str_obj);
+               if (str) {
+                   rc.error_message = str;
+               }
+               Py_DECREF(str_obj);
+            }
+         }
+
+         Py_XDECREF(ptype);
+         Py_XDECREF(pvalue);
+         Py_XDECREF(ptraceback);
+      }
+      return rc;
+   }
+
+   // **GET CAPTURED OUTPUT (for multi-line case too)**
+   PyObject* stdout_obj = PyDict_GetItemString(global_dict, "__stdout_capture__");
+   if (stdout_obj) {
+      PyObject* captured = PyObject_CallMethod(stdout_obj, "getvalue", NULL);
+      if (captured) {
+         const char* output_str = PyUnicode_AsUTF8(captured);
+         if (output_str && strlen(output_str) > 0) {
+            std::cout << output_str;  // Print to terminal
+            // You could also save to a file here if needed
+            rc.stdout = output_str;
+         }
+         Py_DECREF(captured);
+      }
+   }
+   // Restore stdout
+   PyRun_SimpleString("sys.stdout = __original_stdout__");
+
+   // Look for a special variable '__result__' that the code may have set
+   PyObject* stored_result = PyDict_GetItemString(global_dict, "__result__");
+   if (stored_result) {
+        Py_INCREF(stored_result);
+        // return std::make_pair(stored_result, error_message);
+        rc.result = stored_result;
+        return rc;
+   }
+
+   // return std::make_pair(Py_None, error_message);
+   rc.result = Py_None;
+   return rc;
+}
+
+
+PyObject* execute_python_code_with_result(const std::string &code) {
+
+   // std::pair<PyObject *, std::string> r = execute_python_code_with_result_internal(code);
+   execute_python_results_container_t r = execute_python_code_with_result_internal(code);
+   return r.result;
+}
+
+
 // BL says:: let's have a python command with can receive return values
 // we need to pass the script file containing the funcn and the funcn itself
 // returns a PyObject which can then be used further
@@ -6703,32 +7038,36 @@ PyObject *safe_python_command_with_return(const std::string &python_cmd) {
 
       std::cout << "running command: " << command << std::endl;
       PyObject* source_code = Py_CompileString(command.c_str(), "adhoc", Py_eval_input);
-      PyObject* func = PyFunction_New(source_code, d);
-      result = PyObject_CallObject(func, PyTuple_New(0));
-      std::cout << "--------------- in safe_python_command_with_return() result at: " << result << std::endl;
-      if (result) {
-         if(!PyUnicode_Check(result)) {
-             std::cout << "--------------- in safe_python_command_with_return() result is probably not a string." << std::endl;
+      if (source_code) {
+         PyObject* func = PyFunction_New(source_code, d);
+         result = PyObject_CallObject(func, PyTuple_New(0));
+         std::cout << "--------------- in safe_python_command_with_return() result at: " << result << std::endl;
+         if (result) {
+            if(!PyUnicode_Check(result)) {
+                std::cout << "--------------- in safe_python_command_with_return() result is probably not a string." << std::endl;
+            }
+            PyObject* displayed = display_python(result);
+            PyObject* as_string = PyUnicode_AsUTF8String(displayed);
+            std::cout << "--------------- in safe_python_command_with_return() result: "
+                      << PyBytes_AS_STRING(as_string) << std::endl;
+            Py_XDECREF(displayed);
+            Py_XDECREF(as_string);
          }
-         PyObject* displayed = display_python(result);
-         PyObject* as_string = PyUnicode_AsUTF8String(displayed);
-         std::cout << "--------------- in safe_python_command_with_return() result: "
-                   << PyBytes_AS_STRING(as_string) << std::endl;
-         Py_XDECREF(displayed);
-         Py_XDECREF(as_string);
-      }
-      else {
-         std::cout << "--------------- in safe_python_command_with_return() result was null" << std::endl;
-         if(PyErr_Occurred()) {
-            std::cout << "--------------- in safe_python_command_with_return() Printing Python exception:" << std::endl;
-            PyErr_Print();
+         else {
+            std::cout << "--------------- in safe_python_command_with_return() result was null" << std::endl;
+            if(PyErr_Occurred()) {
+               std::cout << "--------------- in safe_python_command_with_return() Printing Python exception:" << std::endl;
+               PyErr_Print();
+            }
          }
-      }
 
-      // debugging
-      // PyRun_String("import coot; print(dir(coot))", Py_file_input, d, d);
-      Py_XDECREF(func);
-      Py_XDECREF(source_code);
+         // debugging
+         // PyRun_String("import coot; print(dir(coot))", Py_file_input, d, d);
+         Py_XDECREF(func);
+         Py_XDECREF(source_code);
+      } else {
+         std::cout << "DEBUG:: in safe_python_command_with_return, null source_code" << std::endl;
+      }
    } else {
       std::cout << "ERROR:: Hopeless failure: module for __main__ is null" << std::endl;
    }
@@ -6844,18 +7183,14 @@ SCM residue_spec_to_scm(const coot::residue_spec_t &res) {
 // residues-matching-criteria [return-val, chain-id, resno, ins-code]
 // This is a library function really.  There should be somewhere else to put it.
 // It doesn't need expression at the scripting level.
-// return a null list on problem
 PyObject *residue_spec_to_py(const coot::residue_spec_t &res) {
-   PyObject *r;
-   r = PyList_New(4);
 
-//    std::cout <<  "py_residue on: " << res.chain << " " << res.resno << " "
-// 	     << res.insertion_code  << std::endl;
-   Py_XINCREF(Py_True); // warning: dereferencing type-punned pointer will break strict-aliasing rules
-   PyList_SetItem(r, 0, Py_True);
-   PyList_SetItem(r, 1, myPyString_FromString(res.chain_id.c_str()));
-   PyList_SetItem(r, 2, PyLong_FromLong(res.res_no));
-   PyList_SetItem(r, 3, myPyString_FromString(res.ins_code.c_str()));
+   // 20251216-PE this no longer prefixes a True
+   PyObject *r = PyList_New(3);
+
+   PyList_SetItem(r, 0, myPyString_FromString(res.chain_id.c_str()));
+   PyList_SetItem(r, 1, PyLong_FromLong(res.res_no));
+   PyList_SetItem(r, 2, myPyString_FromString(res.ins_code.c_str()));
 
    return r;
 }
@@ -7237,7 +7572,7 @@ void set_found_coot_gui() {
    graphics_info_t g;
 #ifdef USE_GUILE
    std::cout << "Coot Scheme Scripting GUI code found and loaded." << std::endl;
-   g.guile_gui_loaded_flag = TRUE; 
+   g.guile_gui_loaded_flag = TRUE;
 #endif // USE_GUILE
 }
 
@@ -7632,7 +7967,7 @@ void print_sequence_chain_general(int imol, const char *chain_id,
 
       std::string full_seq;
       if (pir_format) {
-         std::string n = graphics_info_t::molecules[imol].name_sans_extension(0); 
+         std::string n = graphics_info_t::molecules[imol].name_sans_extension(0);
          full_seq = ">P1;";
          full_seq += n;
          full_seq += " ";
@@ -7641,7 +7976,7 @@ void print_sequence_chain_general(int imol, const char *chain_id,
          full_seq += seq;
          full_seq += "\n*\n";
       } else {
-         std::string n = graphics_info_t::molecules[imol].name_sans_extension(0); 
+         std::string n = graphics_info_t::molecules[imol].name_sans_extension(0);
          full_seq = "> ";
          full_seq += n;
          full_seq += " ";
@@ -7979,7 +8314,7 @@ int read_cif_data_fofc_map(const char *filename, int imol_coordinates) {
       }
       return -1; // which is status in an error
    } else {
-      
+
       std::cout << "Reading cif file: " << filename << std::endl;
 
       graphics_info_t g;
@@ -8713,377 +9048,6 @@ void handle_online_coot_search_request(const char *entry_text) {
 #include <iostream>
 #include <fcntl.h>
 
-static int server_fd = -1;
-static int client_fd = -1;
-
-void init_coot_socket_listener() {
-
-   int port = graphics_info_t::remote_control_port_number;
-   server_fd = socket(AF_INET, SOCK_STREAM, 0);
-   if (server_fd < 0) {
-      std::cerr << "Error: Unable to create socket\n";
-      return;
-   }
-
-   sockaddr_in addr;
-   std::memset(&addr, 0, sizeof(addr));
-   addr.sin_family = AF_INET;
-   addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // localhost only
-   addr.sin_port = htons(port);
-
-   int optval = 1;
-   setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-
-   if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) < 0) {
-      std::cerr << "Error: Unable to bind socket\n";
-      close(server_fd);
-      server_fd = -1;
-      return;
-   }
-   if (listen(server_fd, 1) < 0) {
-      std::cerr << "Error: Unable to listen\n";
-      close(server_fd);
-      server_fd = -1;
-      return;
-   }
-
-   // Make server socket non-blocking
-   int flags = fcntl(server_fd, F_GETFL, 0);
-   fcntl(server_fd, F_SETFL, flags | O_NONBLOCK);
-
-   // log this
-   std::cout << "INFO:: Socket listener initialized on port " << port << std::endl;
-}
-
-// called by c_inner_main() if we have guile
-void make_socket_listener_maybe() {
-
-   if (graphics_info_t::try_port_listener) {
-      if (graphics_info_t::coot_socket_listener_idle_function_token == -1) {
-         // if (graphics_info_t::listener_socket_have_good_socket_state) {
-         // 2025-12-07-PE I am not sure that that is useful in this new
-         // listener.
-         if (true) {
-            init_coot_socket_listener();
-            graphics_info_t::coot_socket_listener_idle_function_token =
-              g_timeout_add(1000, coot_socket_listener_idle_func, nullptr);
-         }
-      }
-   }
-}
-
-void set_coot_listener_socket_state_internal(int sock_state) {
-   graphics_info_t::listener_socket_have_good_socket_state = sock_state;
-}
-
-void set_remote_control_port(int port_number) {
-  graphics_info_t::remote_control_port_number = port_number;
-}
-
-int get_remote_control_port_number() {
-  return graphics_info_t::remote_control_port_number;
-}
-
-#include <netinet/in.h>
-#include <coot-utils/json.hpp>
-using json = nlohmann::json;
-
-struct func_doc {
-   std::string function_name;
-   std::string documentation;
-};
-
-gint coot_socket_listener_idle_func(gpointer data) {
-
-   auto extract_param_info = [] () {
-/*
-            if (attr && PyCallable_Check(attr)) {
-               PyObject* sig = PyObject_CallMethod(inspect, "signature", "O", attr);
-
-               if (!sig) {
-                  PyErr_Print();
-               } else {
-
-                  std::cout << "Here A" << std::endl;
-                  PyObject* params = PyObject_GetAttrString(sig, "parameters");
-                  PyObject *key, *value;
-                  Py_ssize_t pos = 0;
-
-                  PyObject* empty = PyObject_GetAttrString(inspect, "_empty");
-                  while (PyDict_Next(params, &pos, &key, &value)) {
-                     std::cout << "Here B" << std::endl;
-                     const char* param_name = PyUnicode_AsUTF8(key);
-                     PyObject *kindObj    = PyObject_GetAttrString(value, "kind");
-                     PyObject *defaultObj = PyObject_GetAttrString(value, "default");
-                     PyObject *annotObj   = PyObject_GetAttrString(value, "annotation");
-                     long kind = PyLong_AsLong(kindObj);
-                     bool has_annot = (annotObj != empty);
-                     std::string annotation;
-                     if (has_annot) {
-                         PyObject* s = PyObject_Str(annotObj);
-                         annotation = PyUnicode_AsUTF8(s);
-                         Py_DECREF(s);
-                     }
-                     std::cout << "param_name: " << param_name << " kind: " << kind
-                               << " annotation: " << annotation << std::endl;
-                  }
-                  PyObject* retAnn = PyObject_GetAttrString(sig, "return_annotation");
-                  bool has_ret_annot = (retAnn != empty);
-
-                  std::string return_type;
-                  if (has_ret_annot) {
-                      PyObject* s = PyObject_Str(retAnn);
-                      return_type = PyUnicode_AsUTF8(s);
-                      Py_DECREF(s);
-                  }
-                  Py_DECREF(retAnn);
-
-               }
-            }
-*/
-   };
-
-   auto handle_list_tools = [] () {
-
-      // the first is the module name, e.g. coot, coot_utils and the
-      // second is the list of functions in that module
-      // return functions
-      std::vector<std::pair<std::string, std::vector<func_doc> > > functions;
-
-      PyObject* inspect = PyImport_ImportModule("inspect");
-
-      std::vector<std::string> module_names = {"coot", "coot_utils"};
-      for (const std::string &module_name : module_names) {
-         std::vector<func_doc> v; // functions that are in this module
-         PyObject* pModule = PyImport_ImportModule(module_name.c_str());
-
-         if (!pModule) {
-            PyErr_Print();
-            std::cerr << "Failed to import module " << module_name << "\n";
-            continue;
-         }
-
-         // Get list of attributes (like dir(coot))
-         PyObject* pDir = PyObject_Dir(pModule);
-         if (!pDir) {
-             PyErr_Print();
-             Py_DECREF(pModule);
-             continue;
-         }
-
-         // Iterate over list
-         Py_ssize_t size = PyList_Size(pDir);
-         for (Py_ssize_t i=0; i<size; ++i) {
-
-            PyObject* pName = PyList_GetItem(pDir, i); // borrowed ref
-            const char* name = PyUnicode_AsUTF8(pName);
-
-            PyObject* attr = PyObject_GetAttrString(pModule, name);
-            if (PyCallable_Check(attr)) {
-               func_doc fd;
-               fd.function_name = name;
-               PyObject* docObj = PyObject_GetAttrString(attr, "__doc__");
-               if (docObj) {
-                  if (docObj == Py_None) {
-                     if (false)
-                        std::cout << "debug:: name " << name << " docobj: pynone" << std::endl;
-                  } else {
-                     std::string doc = PyBytes_AS_STRING(PyUnicode_AsUTF8String(docObj));
-                     if (false)
-                        std::cout << "debug:: name " << name << " docobj: " << doc << std::endl;
-                     if (! doc.empty())
-                        fd.documentation = doc;
-                  }
-               }
-               v.push_back(fd);
-               Py_XDECREF(attr);
-            }
-         }
-
-         if (! v.empty())
-            functions.push_back(std::make_pair(module_name, v));
-
-         Py_DECREF(pDir);
-         Py_DECREF(pModule);
-      }
-      return functions;
-   };
-
-   auto make_response_from_functions = [] (const std::vector<std::pair<std::string, std::vector<func_doc> > > &functions, int id) {
-
-      json j_functions;
-      json j_item;
-      j_item["name"] = "python.exec";
-      j_item["description"] = "Execute Python Code";
-      j_item["params"] = json::array({"code"});
-      j_functions.push_back(j_item);
-
-      unsigned int n = 0;
-      for (const auto &module_pair : functions) {
-         if (n >= 4) continue; // tmp limit
-         const auto &module = module_pair.first;
-         const auto &funcs = module_pair.second;
-         for (const auto &func : funcs) {
-            json j_item;
-            j_item["name"] = module + "." + func.function_name;
-            if (!func.documentation.empty())
-               j_item["description"] = func.documentation;
-            j_item["params"] = json::array();
-            j_functions.push_back(j_item);
-         }
-         n++;
-      }
-      return j_functions;
-   };
-
-   // run return result wrapped in json.
-   //
-   auto handle_string_as_json = [handle_list_tools, make_response_from_functions] (const std::string &buf_str) {
-
-      // std::cout << "handle this string: " << buf_str << ":" << std::endl;
-
-      std::string response_str; // can return blank if we don't get a method that we  know
-
-      int id = -1; // unset/unfound
-      if (! buf_str.empty()) {
-         json req = json::parse(buf_str);
-         json::const_iterator j_id = req.find("id");
-         if (j_id != req.end()) {
-            id = j_id.value();
-         } else {
-            std::cout << "handle_string_as_json(): id not found - sad" << std::endl;
-         }
-         try {
-
-            if (req["method"] == "python.exec") {
-               std::string code = req["params"]["code"];
-               PyObject *rrr = safe_python_command_with_return(code);
-               if (PyBool_Check(rrr) || rrr == Py_None)
-                  Py_INCREF(rrr);
-               const char *mess = "%s";
-               PyObject *dest = myPyString_FromString(mess);
-               PyObject *o = PyUnicode_Format(dest, rrr);
-               std::string s = PyBytes_AS_STRING(PyUnicode_AsUTF8String(o));
-               json j_response;
-               j_response["jsonrpc"] = "2.0";
-               j_response["id"] = std::to_string(id);
-               j_response["result"] = s;
-               response_str = j_response.dump();
-            }
-
-            if (req["method"] == "mcp.list_tools") {
-               std::vector<std::pair<std::string, std::vector<func_doc> > > functions = handle_list_tools();
-               json response_funcs = make_response_from_functions(functions, id);
-               json j_response;
-               j_response["jsonrpc"] = "2.0";
-               j_response["id"] = std::to_string(id);
-               j_response["result"] = response_funcs;
-               response_str = j_response.dump();
-            }
-         }
-         catch (const std::exception &e) {
-            std::cout << "WARNING:: coot_socket_listener_idle_func(): catch handle_string_as_json fail "
-                      << buf_str << std::endl;
-         }
-      }
-      return response_str;
-
-   };
-
-   auto write_all = [] (int fd, const std::string &s) {
-
-      const char* p = static_cast<const char*>(s.c_str());
-      size_t length = s.length();
-      while (length > 0) {
-         ssize_t n = write(fd, p, length);
-         if (n < 0) {
-            std::cout << "DEBUG:: write() error: " << errno << " (" << strerror(errno) << ")" << std::endl;
-            switch(errno) {
-               case (EINTR):
-                  std::cout << "DEBUG:: EINTR" << std::endl;
-                  // try again
-                  break;
-               case (EAGAIN):
-                  std::cout << "DEBUG:: EAGAIN" << std::endl;
-                  // output buffer was filled - write() needs to be called again to finish sending s
-                  std::this_thread::sleep_for(std::chrono::microseconds(200));
-                  break;
-               default:
-                  std::cout << "DEBUG:: neither EINTR not EAGAIN "
-                            << EINTR << " " << EAGAIN << " errno " << errno << std::endl;
-                  return false;  // real error
-            }
-         }
-         if (n == 0) {
-            return false;  // connection closed
-         }
-         if (n > 0) {
-            p += n;
-            length -= n;
-         }
-      }
-      return true;
-   };
-
-   std::cout << "listening..." << std::endl;
-
-   // If no active client connection, accept one non-blockingly
-   if (client_fd < 0 && server_fd >= 0) {
-      client_fd = accept(server_fd, nullptr, nullptr);
-      if (client_fd >= 0) {
-         // Set client socket non-blocking too
-         int flags = fcntl(client_fd, F_GETFL, 0);
-         fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-         std::cout << "Accepted new client socket connection.\n";
-      }
-   }
-   // If we have a client, read any incoming data non-blockingly
-   if (client_fd >= 0) {
-      char buffer[4096];
-      ssize_t n_read = read(client_fd, buffer, sizeof(buffer) - 1);
-      std::cout << "debug:: n_read: " << n_read << std::endl;
-      if (n_read > 4) {
-         int n_sent = int(buffer[3]) + 256 * int(buffer[2]) + 256 * 256 * int(buffer[1]) + 256 * 26 * 256 * int(buffer[0]);
-         std::cout << "debug:: n_sent: " << n_sent << std::endl;
-         buffer[n_read] = '\0';
-         std::cout << "Received: " << buffer+4 << std::endl;
-         std::string buf_as_string(buffer+4, n_read);
-         std::string r = handle_string_as_json(buf_as_string);
-
-         const std::string &response_str = r;
-         int32_t len = response_str.size();
-
-         std::cout << "debug:: response_str len " << len << std::endl;
-
-         char header[4];
-         header[0] = (len >> 24) & 0xFF;
-         header[1] = (len >> 16) & 0xFF;
-         header[2] = (len >> 8)  & 0xFF;
-         header[3] = (len)       & 0xFF;
-
-         std::string framed;
-         framed.reserve(4 + response_str.size());
-         framed.append(header, 4);        // 4-byte header
-         framed.append(response_str);     // JSON body
-         bool write_statue = write_all(client_fd, framed);
-         // std::cout << "DEBUG:: write_status: " << write_statue << std::endl;
-
-      } else if (n_read == 0) {
-         // Client disconnected
-         std::cout << "Client disconnected.\n";
-         close(client_fd);
-         client_fd = -1;
-      } else if (n_read < 0 && errno != EWOULDBLOCK && errno != EAGAIN) {
-         std::cerr << "Socket read error\n";
-         close(client_fd);
-         client_fd = -1;
-      }
-      // else: nothing to read right now
-   }
-   // Always return 1 (TRUE) to keep idle handler running
-   return 1;
-
-}
 
 /* tooltips */
 void

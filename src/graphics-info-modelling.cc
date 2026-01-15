@@ -104,6 +104,9 @@
 
 #include "widget-from-builder.hh"
 
+#include "utils/logging.hh"
+extern logging logger;
+
 
 void
 graphics_info_t::get_restraints_lock(const std::string &calling_function_name) {
@@ -5249,11 +5252,12 @@ graphics_info_t::get_chi_atom_names(mmdb::Residue *residue,
 
 void graphics_info_t::pulse_marked_positions(const std::vector<glm::vec3> &positions,
                                              bool broken_lines_mode, unsigned int n_rings, float radius_overall,
-                                             unsigned int n_ticks, const glm::vec4 &colour) {
+                                             unsigned int n_ticks, const glm::vec4 &colour,
+                                             float resize_factor) {
 
    lines_mesh_for_generic_pulse.setup_red_pulse(radius_overall, n_rings, broken_lines_mode, colour);
    pulse_data_t *pulse_data = new pulse_data_t(0, n_ticks);
-   pulse_data->resize_factor = 1.005f;
+   pulse_data->resize_factor = resize_factor;
    gpointer user_data = reinterpret_cast<void *>(pulse_data);
    generic_pulse_centres = positions; // class variable
    gtk_widget_add_tick_callback(glareas[0], generic_pulse_function, user_data, NULL);
@@ -5271,7 +5275,9 @@ graphics_info_t::rotate_chi(double x, double y) {
 
       mmdb::Residue *residue_p = nullptr;
       if (! moving_atoms_asc) {
-         std::cout << "ERROR: moving_atoms_asc is NULL" << std::endl;
+         // std::cout << "ERROR:: moving_atoms_asc is NULL" << std::endl;
+         logger.log(log_t::ERROR, logging::function_name_t("rotate_chi get_residue_from_moving_mol"),
+                    "moving_atoms_asc is NULL");
       } else {
          if (moving_atoms_asc->n_selected_atoms == 0) {
             std::cout << "ERROR: no atoms in moving_atoms_asc" << std::endl;
@@ -5328,7 +5334,7 @@ graphics_info_t::rotate_chi(double x, double y) {
          if (lines_mesh_for_identification_pulse.empty()) {
             setup_invalid_chi_angle_pulse(residue_p);
          }
-         graphics_info_t::ephemeral_overlay_label("select_a_chi_angle_label");
+         graphics_info_t::ephemeral_overlay_label_from_id("select_a_chi_angle_label");
       }
       return;
    }
@@ -5349,24 +5355,24 @@ graphics_info_t::rotate_chi(double x, double y) {
    // positions.
    //
 
-
    short int istat = 1; // failure
    if (! moving_atoms_asc) {
-      std::cout << "ERROR: moving_atoms_asc is NULL" << std::endl;
+      // std::cout << "ERROR: moving_atoms_asc is NULL" << std::endl;
+      logger.log(log_t::ERROR, logging::function_name_t("rotate_chi"), "moving_atoms_asc is NULL");
    } else {
       if (moving_atoms_asc->n_selected_atoms == 0) {
-	 std::cout << "ERROR: no atoms in moving_atoms_asc" << std::endl;
+         std::cout << "ERROR: no atoms in moving_atoms_asc" << std::endl;
       } else {
-	 mmdb::Model *model_p = moving_atoms_asc->mol->GetModel(1);
-	 if (model_p) {
-	    mmdb::Chain *chain_p = model_p->GetChain(0);
-	    if (chain_p) {
-	       mmdb::Residue *residue_p = chain_p->GetResidue(0);
-	       if (residue_p) {
-		  istat = update_residue_by_chi_change(imol_moving_atoms, residue_p, *moving_atoms_asc, chi, diff);
-	       }
-	    }
-	 }
+         mmdb::Model *model_p = moving_atoms_asc->mol->GetModel(1);
+         if (model_p) {
+            mmdb::Chain *chain_p = model_p->GetChain(0);
+            if (chain_p) {
+               mmdb::Residue *residue_p = chain_p->GetResidue(0);
+               if (residue_p) {
+                  istat = update_residue_by_chi_change(imol_moving_atoms, residue_p, *moving_atoms_asc, chi, diff);
+               }
+            }
+         }
       }
    }
 

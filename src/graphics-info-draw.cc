@@ -486,7 +486,7 @@ glm::mat4
 graphics_info_t::get_model_matrix() {
 
    // rework this so that the view rotation matrix becomes part of the *model* matrix
-   // for both orthograph and perspective
+   // for both orthographic and perspective
 
    glm::mat4 m(1.0f);
    glm::vec3 rc = get_rotation_centre();
@@ -4333,7 +4333,7 @@ graphics_info_t::check_if_hud_button_moused_over_or_act_on_hit(double x, double 
          HUD_button_limits_t lims = button.get_button_limits(w, h);
          if (lims.is_hit(x_gl_coords,y_gl_coords)) {
             if (act_on_hit) {
-               std::cout << "Act on button " << i << " callback" << std::endl;
+               // std::cout << "Act on button " << i << " callback" << std::endl;
                if (button.callback_function) {
                   button.callback_function();
                }
@@ -4493,9 +4493,10 @@ graphics_info_t::check_if_hud_rama_plot_clicked(double mouse_x, double mouse_y) 
                int w = allocation.width;
                int h = allocation.height;
                mouse_over_hit_t hit = gl_rama_plot.get_mouse_over_hit(mouse_x, mouse_y, w, h);
-               std::cout << "hit: plot clicked: " << hit.plot_was_clicked
-                         << " residue_was_clicked: " << hit.residue_was_clicked
-                         << " spec " << hit.residue_spec << std::endl;
+               if (false)
+                  std::cout << "hit: plot clicked: " << hit.plot_was_clicked
+                            << " residue_was_clicked: " << hit.residue_was_clicked
+                            << " spec " << hit.residue_spec << std::endl;
                if (hit.plot_was_clicked) status = true;
                if (hit.residue_was_clicked) {
                   std::pair<bool, coot::Cartesian> rc = get_rotation_centre_from_intermediate_atoms_residue_spec(hit.residue_spec);
@@ -5831,7 +5832,7 @@ void graphics_info_t::add_unhappy_atom_marker(int imol, const coot::atom_spec_t 
 
 void graphics_info_t::remove_all_unhappy_atom_markers() {
 
-   for (int imol=0; imol<molecules.size(); imol++) {
+   for (unsigned int imol=0; imol<molecules.size(); imol++) {
       if (is_valid_model_molecule(imol)) {
          if (! molecules[imol].unhappy_atom_marker_positions.empty()) {
             molecules[imol].unhappy_atom_marker_positions.clear();
@@ -5855,6 +5856,8 @@ void graphics_info_t::setup_draw_for_unhappy_atom_markers() {
 
 // static
 void graphics_info_t::draw_unhappy_atom_markers(unsigned int pass_type) {
+
+   if (curmudgeon_mode) return;
 
    for (unsigned int imol=0; imol<molecules.size(); imol++) {
       if (is_valid_model_molecule(imol)) {

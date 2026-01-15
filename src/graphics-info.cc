@@ -1851,26 +1851,71 @@ graphics_info_t::run_post_manipulation_hook_py(int imol, int mode) {
    //           << std::endl;
    // return;
 
-   std::string pms = "post_manipulation_script";
-   // pms = "print";
-   std::string check_pms = "callable(" + pms + ")";
+   if (false) // debugging
+      std::cout << "debug run_post_manipulation_hook_py() --- start --- " << std::endl;
 
-   const char *modulename = "__main__";
-   PyObject *pName = myPyString_FromString(modulename);
-   PyObject *pModule = PyImport_Import(pName);
-   pModule = PyImport_AddModule("__main__");
-   pModule = PyImport_AddModule("coot");
-   pModule = PyImport_AddModule("coot_utils");
-   PyObject *globals = PyModule_GetDict(pModule);
+   PyObject *error_thing = PyErr_Occurred();
+   if (error_thing) {
+      std::cout << "ERROR:: while executing run_post_manipulation_hook_py() a python error occured before start " << std::endl;
+      PyObject *type, *value, *traceback;
+      PyErr_Fetch(&type, &value, &traceback);
+      PyErr_NormalizeException(&type, &value, &traceback);
+      PyObject *exception_string = PyObject_Repr(value);
+      const char *em = myPyString_AsString(exception_string);
+      std::cout << "ERROR:: " << em << std::endl;
+      Py_XDECREF(value);
+      Py_XDECREF(traceback);
+      Py_XDECREF(type);
+   }
 
-   PyObject *result = PyRun_String(check_pms.c_str(), Py_eval_input, globals, globals);
+   PyObject *result = nullptr;
+   PyObject *pModule = PyImport_ImportModule("coot_utils");
+   if (!pModule) {
+      std::cout << "ERROR:: run_post_manipulation_hook_py() no pModule " << std::endl;
+      PyErr_Print();
+      return;
+   } else {
+      PyObject *attr = PyObject_GetAttrString(pModule, "post_manipulation_script");
+      if (attr && PyCallable_Check(attr)) {
+
+         if (false) { // debugging calling this function
+            // attr is a new/borrowed reference you already obtained
+            PyObject *repr = PyObject_Repr(attr);  // new reference
+            if (repr) {
+               const char *s = PyUnicode_AsUTF8(repr); // NULL if not a unicode
+               if (s)
+                  std::cout << "callable repr: " << s << std::endl;
+               else
+                  std::cout << "callable repr: <non-unicode repr>" << std::endl;
+               Py_XDECREF(repr);
+            } else {
+               // If PyObject_Repr fails, print the Python error so you can debug
+               PyErr_Print();
+            }
+         }
+
+         PyObject *arg_1 = PyLong_FromLong(imol);
+         PyObject *arg_2 = PyLong_FromLong(mode);
+         // result = PyObject_CallObject(attr, t);
+         result = PyObject_CallFunctionObjArgs(attr, arg_1, arg_2, NULL);
+         Py_XDECREF(result);
+      } else {
+         if (false) // useful when debugging.
+            std::cout << "DEBUG:: coot_utils.post_manipulation_script is not callable" << std::endl;
+         return;
+      }
+      Py_XDECREF(attr);
+      Py_XDECREF(pModule);
+   }
+
    // the above function can set an error  - that's bad news for the python wrapping
    // of accept_moving_atoms(). So instead of properly handling the error, or investigating
    // why it is happening, let's just clear it.
-
-   PyObject *error_thing = PyErr_Occurred();
+   //
+   error_thing = PyErr_Occurred();
    if (! error_thing) {
-      std::cout << "INFO:: run_post_manipulation_hook_py() No Python error on callable check" << std::endl;
+      if (false)
+         std::cout << "DEBUG:: run_post_manipulation_hook_py() No Python error on callable check" << std::endl;
    } else {
       std::cout << "ERROR:: while executing run_post_manipulation_hook_py() a python error occured " << std::endl;
       PyObject *type, *value, *traceback;
@@ -1885,36 +1930,6 @@ graphics_info_t::run_post_manipulation_hook_py(int imol, int mode) {
    }
 
    PyErr_Clear();
-
-   if (false) {
-      std::cout << "::::::: in run_post_manipulation_hook_py() with check_pms \"" << check_pms << "\"" << std::endl;
-      std::cout << "::::::: in run_post_manipulation_hook_py() with result " << result << std::endl;
-   }
-
-   if (result) {
-      long ret = PyLong_AsLong(result);
-      // std::cout << "::::::: in run_post_manipulation_hook_py() with ret " << ret << std::endl;
-      if (ret == 1) {
-         std::string ss = pms;
-         ss += "(";
-         ss += int_to_string(imol);
-         ss += ", ";
-         ss += int_to_string(mode);
-         ss += ")";
-         // std::cout << "running safe command: " << ss << std::endl;
-         PyObject *res = safe_python_command_with_return(ss);
-         // std::cout << "safe_python_command_with_return() returned res " << res << std::endl;
-         if (res) {
-            PyObject *fmt =  myPyString_FromString("result: \%s");
-            PyObject *tuple = PyTuple_New(1);
-            PyTuple_SetItem(tuple, 0, res);
-            //PyString_Format(p, tuple);
-            PyObject *msg = PyUnicode_Format(fmt, tuple);
-            // std::cout << PyUnicode_AsUTF8String(msg)<<std::endl;;
-            Py_DECREF(msg);
-         }
-      }
-   }
 
    // Py_XDECREF(v);
 }
@@ -2243,7 +2258,8 @@ graphics_info_t::make_moving_atoms_graphics_object(int imol,
                                                    ) {
 
    if (! moving_atoms_asc) {
-      std::cout << "info:: make_moving_atoms_graphics_object() makes a new moving_atoms_asc" << std::endl;
+      if (false)
+         std::cout << "info:: make_moving_atoms_graphics_object() makes a new moving_atoms_asc" << std::endl;
       moving_atoms_asc = new atom_selection_container_t;
    } else {
       // moving_atoms_asc->clear_up(); // crash.  Much complexity to fix the crash, I think.
@@ -4936,74 +4952,73 @@ graphics_info_t::setup_flash_bond_using_moving_atom_internal(int i_torsion_index
    // get the residue type and from that the atom name pairs:
    //
    if (! moving_atoms_asc) {
-      std::cout << "ERROR: moving_atoms_asc is NULL" << std::endl;
+      // std::cout << "ERROR:: moving_atoms_asc is NULL" << std::endl;
+      logger.log(log_t::ERROR, logging::function_name_t(__FUNCTION__), "moving_atoms_asc is NULL");
    } else {
       if (moving_atoms_asc->n_selected_atoms == 0) {
-    std::cout << "ERROR: no atoms in moving_atoms_asc" << std::endl;
+         std::cout << "ERROR: no atoms in moving_atoms_asc" << std::endl;
       } else {
-    mmdb::Model *model_p = moving_atoms_asc->mol->GetModel(1);
-    if (model_p) {
-       mmdb::Chain *chain_p = model_p->GetChain(0);
-       if (chain_p) {
-          mmdb::Residue *residue_p = chain_p->GetResidue(0);
-          if (residue_p) {
+         mmdb::Model *model_p = moving_atoms_asc->mol->GetModel(1);
+         if (model_p) {
+            mmdb::Chain *chain_p = model_p->GetChain(0);
+            if (chain_p) {
+               mmdb::Residue *residue_p = chain_p->GetResidue(0);
+               if (residue_p) {
 
-     std::string residue_type(residue_p->GetResName());
-     bool add_reverse_contacts = 0;
+                  std::string residue_type(residue_p->GetResName());
 
-     std::pair<std::string, std::string> atom_names;
+                  std::pair<std::string, std::string> atom_names;
 
-     std::pair<short int, coot::dictionary_residue_restraints_t> r =
-        geom_p->get_monomer_restraints(residue_type, imol_moving_atoms);
+                  std::pair<short int, coot::dictionary_residue_restraints_t> r =
+                     geom_p->get_monomer_restraints(residue_type, imol_moving_atoms);
 
-     if (r.first) {
-        std::vector <coot::dict_torsion_restraint_t> torsion_restraints =
-   r.second.get_non_const_torsions(find_hydrogen_torsions_flag);
+                  if (r.first) {
+                     std::vector <coot::dict_torsion_restraint_t> torsion_restraints =
+                        r.second.get_non_const_torsions(find_hydrogen_torsions_flag);
 
-        if (i_torsion_index >= 0 && i_torsion_index < int(torsion_restraints.size())) {
+                     if (i_torsion_index >= 0 && i_torsion_index < int(torsion_restraints.size())) {
 
-   atom_names.first  = torsion_restraints[i_torsion_index].atom_id_2_4c();
-   atom_names.second = torsion_restraints[i_torsion_index].atom_id_3_4c();
+                        atom_names.first  = torsion_restraints[i_torsion_index].atom_id_2_4c();
+                        atom_names.second = torsion_restraints[i_torsion_index].atom_id_3_4c();
 
-   if ((atom_names.first != "") &&
-       (atom_names.second != "")) {
+                        if ((atom_names.first != "") &&
+                            (atom_names.second != "")) {
 
-      mmdb::PPAtom residue_atoms;
-      int nResidueAtoms;
-      residue_p->GetAtomTable(residue_atoms, nResidueAtoms);
+                           mmdb::PPAtom residue_atoms;
+                           int nResidueAtoms;
+                           residue_p->GetAtomTable(residue_atoms, nResidueAtoms);
 
-      if (nResidueAtoms > 0) { // of course it is!
-         for (int iat1=0; iat1<nResidueAtoms; iat1++) {
-    std::string ra1=residue_atoms[iat1]->name;
-    if (ra1 == atom_names.first) {
-       for (int iat2=0; iat2<nResidueAtoms; iat2++) {
-          std::string ra2=residue_atoms[iat2]->name;
-          if (ra2 == atom_names.second) {
+                           if (nResidueAtoms > 0) { // of course it is!
+                              for (int iat1=0; iat1<nResidueAtoms; iat1++) {
+                                 std::string ra1=residue_atoms[iat1]->name;
+                                 if (ra1 == atom_names.first) {
+                                    for (int iat2=0; iat2<nResidueAtoms; iat2++) {
+                                       std::string ra2=residue_atoms[iat2]->name;
+                                       if (ra2 == atom_names.second) {
 
-     draw_chi_angle_flash_bond_flag = 1;
-     clipper::Coord_orth p1(residue_atoms[iat1]->x,
-    residue_atoms[iat1]->y,
-    residue_atoms[iat1]->z);
-     clipper::Coord_orth p2(residue_atoms[iat2]->x,
-    residue_atoms[iat2]->y,
-    residue_atoms[iat2]->z);
+                                          draw_chi_angle_flash_bond_flag = 1;
+                                          clipper::Coord_orth p1(residue_atoms[iat1]->x,
+                                                                 residue_atoms[iat1]->y,
+                                                                 residue_atoms[iat1]->z);
+                                          clipper::Coord_orth p2(residue_atoms[iat2]->x,
+                                                                 residue_atoms[iat2]->y,
+                                                                 residue_atoms[iat2]->z);
 
-
-     std::pair<clipper::Coord_orth, clipper::Coord_orth> cp(p1, p2);
-     graphics_info_t g;
-     g.add_flash_bond(cp);
-     graphics_draw();
-          }
-       }
-    }
+                                          std::pair<clipper::Coord_orth, clipper::Coord_orth> cp(p1, p2);
+                                          graphics_info_t g;
+                                          g.add_flash_bond(cp);
+                                          graphics_draw();
+                                       }
+                                    }
+                                 }
+                              }
+                           }
+                        }
+                     }
+                  }
+               }
+            }
          }
-      }
-   }
-        }
-     }
-          }
-       }
-    }
       }
    }
 }
@@ -6656,7 +6671,7 @@ graphics_info_t::sfcalc_genmaps_using_bulk_solvent(int imol_model,
 #include "utils/xdg-base.hh"
 
 // static
-void graphics_info_t::ephemeral_overlay_label(const std::string &overlay_label) {
+void graphics_info_t::ephemeral_overlay_label_from_id(const std::string &overlay_label) {
 
    GtkWidget *w = widget_from_builder(overlay_label.c_str());
    if (w) {
@@ -6670,6 +6685,25 @@ void graphics_info_t::ephemeral_overlay_label(const std::string &overlay_label) 
       g_timeout_add(2000, G_SOURCE_FUNC(label_callback), w);
    }
 }
+
+// and the generalization of that! Just pass the text of the ephemeral overlay label
+// static
+void graphics_info_t::ephemeral_overlay_label(const std::string &overlay_label_text) {
+
+   GtkWidget *w = widget_from_builder("general_use_overlay_label");
+   if (w) {
+      gtk_widget_set_visible(w, TRUE);
+      gtk_label_set_text(GTK_LABEL(w), overlay_label_text.c_str());
+
+      auto label_callback = +[] (gpointer user_data) {
+         GtkWidget *w = GTK_WIDGET(user_data);
+         gtk_widget_set_visible(w, FALSE);
+         return 0;
+      };
+      g_timeout_add(2000, G_SOURCE_FUNC(label_callback), w);
+   }
+}
+
 
 void
 graphics_info_t::quick_save() {

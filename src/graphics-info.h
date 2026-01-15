@@ -213,7 +213,8 @@ class graphics_info_t {
 
    static int n_molecules_max;
 
-   static short int in_side_by_side_stereo_mode;
+   static bool in_side_by_side_stereo_mode; // user interfae should toggle this and it gets used
+                                            // in render_scene()
 
    static std::pair<double, double> mouse_begin;
    static std::pair<double, double> mouse_clicked_begin;
@@ -758,8 +759,8 @@ public:
    void draw_anti_aliasing();
    static int display_mode; // e.g. HARDWARE_STEREO_MODE, DTI_SIDE_BY_SIDE_STEREO
    static float hardware_stereo_angle_factor;
-   static short int in_wall_eyed_side_by_side_stereo_mode;
-   enum stereo_eye_t { FRONT_EYE, LEFT_EYE, RIGHT_EYE };
+   static bool in_wall_eyed_side_by_side_stereo_mode;
+   enum class stereo_eye_t { MONO, LEFT_EYE, RIGHT_EYE };
    static stereo_eye_t which_eye;
    static glm::vec3 eye_position; // useful in projection (testing)
    static bool stereo_style_2010;
@@ -2550,7 +2551,10 @@ public:
    void quick_save();
 
    // and the generalization of that: - display the label overlay for 2 seconds
-   static void ephemeral_overlay_label(const std::string &overlay_label);
+   static void ephemeral_overlay_label_from_id(const std::string &overlay_label_id);
+
+   // and the generalization of that! Just pass the text of the ephemeral overlay label
+   static void ephemeral_overlay_label(const std::string &overlay_label_text);
 
    static std::string save_state_file_name;
 
@@ -4175,6 +4179,7 @@ string   static std::string sessionid;
    static gboolean render(bool render_to_screendump_framebuffer_flag=false,
                           const std::string &output_file_name="coot-screendump.tga");
    static gboolean render_scene(); // like crows
+   static gboolean render_scene_for_eye_internal(stereo_eye_t e); // like crows
    enum { PASS_TYPE_STANDARD, PASS_TYPE_GEN_SHADOW_MAP, PASS_TYPE_SSAO, PASS_TYPE_WITH_SHADOWS};
    static void render_scene_with_x_blur();
    static void render_scene_with_y_blur();
@@ -4437,8 +4442,8 @@ string   static std::string sessionid;
    void setup_delete_residues_pulse(const std::vector<mmdb::Residue *> &residues);
    void setup_invalid_residue_pulse(mmdb::Residue *residue_p);
    static void pulse_marked_positions(const std::vector<glm::vec3> &positions, // generalization of above
-                                             bool broken_lines_mode, unsigned int n_rings, float radius_overall,
-                                             unsigned int n_ticks, const glm::vec4 &col);
+                                      bool broken_lines_mode, unsigned int n_rings, float radius_overall,
+                                      unsigned int n_ticks, const glm::vec4 &col, float resize_factor = 1.005f);
 
    static gboolean screen_centre_pulse_function(GtkWidget *widget,
                                                 GdkFrameClock *frame_clock,
@@ -4771,6 +4776,9 @@ string   static std::string sessionid;
 
    static coot::inchikey_store_t inchikey_store;
    static void read_inchikeys();
+
+   // 20251219-PE Do I need this?
+   static std::string current_alt_conf; // nobody wants this "per molecule" right?
 
    // add a pumpkin as a graphics object and draw it.
    void pumpkin();

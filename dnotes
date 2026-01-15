@@ -3975,6 +3975,7 @@ INFO::
    o Up to date with Bernie's commits?
    o Up to date with Jakubs's commits?
    o Run the damn tests - don't be lazy
+   o Update the src/coot_*.i files if needed
    o make check
    o before the release commit, make sure it builds and passes tests on cluster
    o New entry in ChangeLog
@@ -3986,7 +3987,7 @@ INFO::
    o change the PACKAGE_VERSION in CMakeLists.txt
    o update data/Components-inchikey.ich
    o Correct the version in the about_dialog in the coot-gtk4.ui file
-   o Artists acknowledged in glade/aboutdialog? 
+   o Artists acknowledged in glade/aboutdialog?
    o update Components-inchikey.ich
    o Use []
         Change the splash screen?
@@ -4005,6 +4006,8 @@ INFO::
         copy into the new directory the script configure-it.
         configure and make check
    o git status # what did you forget to add?
+   o check chapi compiles
+   o test-molecules-container
    o are the shaders up to date?
    o Transfer the dist tar to hal and build it there
    o git commit -a
@@ -11961,8 +11964,45 @@ Thu 27 Nov 2025 12:26:15 GMT
 ---
 Sat 29 Nov 15:08:12 GMT 2025
 
-   when talking about thought about the new interface:
-   QoL
+   when talking about the new interface:
+   emphasise QoL:
 
    learnability, productivity, forgiveness, and aesthetics
+
+----
+Sat  6 Dec 2025 12:53:17 GMT
+
+sonar sounds:
+   https://freesound.org/people/shinephoenixstormcrow/sounds/337050/
+   https://freesound.org/people/MrLindstrom/sounds/543932/
+
+----
+Tue  9 Dec 2025 23:29:39 GMT
+
+   equivariant diffusion models for SBDD
+
+   https://www.nature.com/articles/s43588-024-00737-x
+   cites fragmenstein
+
+-----
+Tue 23 Dec 2025 04:45:24 GMT
+
+   have a look at ChemBERTa
+
+---
+Wed 24 Dec 2025 02:58:50 GMT
+
+   shiftfield B for cryo-EM
+
+---
+Fri  9 Jan 2026 09:23:45 GMT
+
+foxsight
+
+6ynq
+5pb7 BAZ2B
+x557 also
+
+
+
 

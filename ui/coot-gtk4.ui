@@ -531,7 +531,11 @@
       <attribute name="label">Draw</attribute>
       <submenu>
         <attribute name="label">View</attribute>
-        <section>
+          <section>
+            <item>
+              <attribute name="label">Alt-Conf Switcher</attribute>
+              <attribute name="action">app.alt_conf_switcher_action</attribute>
+            </item>
 
           <!-- <item> -->
           <!--   <attribute name="label">Background Colour...</attribute> -->
@@ -566,7 +570,6 @@
             </item>
           </submenu>
          
-
           <item>
             <attribute name="label">Display Only Active</attribute>
             <attribute name="action">app.display_only_active_action</attribute>
@@ -1465,7 +1468,7 @@ Copyright 2023, 2024, 2025 Global Phasing Ltd.</property>
     <property name="license-type">lgpl-3-0</property>
     <property name="logo-icon-name">coot</property>
     <property name="program-name">Coot</property>
-    <property name="version">1.1.19</property>
+    <property name="version">1.1.x-pre</property>
     <property name="website">https://www2.mrc-lmb.cam.ac.uk/personal/pemsley/coot</property>
     <property name="website-label">The Coot Website</property>
     <signal name="close-request" handler="on_about_dialog_close_request"/>
@@ -6738,6 +6741,15 @@ Do you want to continue?
               </child>
 
               <child>
+                <object class="GtkButton" id="alt-conf-switcher-button">
+                  <property name="label" translatable="yes">Clear AltConf Switcher</property>
+                  <property name="can-focus">0</property>
+                  <property name="visible">False</property>
+                  <signal name="clicked" handler="on_alt_conf_switcher_button_clicked" swapped="no"/>
+                </object>
+              </child>
+
+              <child>
                 <object class="GtkBox" id="subprocess_running_box">
                   <property name="visible">False</property>
                   <property name="orientation">vertical</property>
@@ -10283,6 +10295,15 @@ Do you want to continue?
                     </child>
                   </object>
                 </child>
+              </object>
+            </child>
+
+            <child type="overlay">
+              <object class="GtkLabel" id="general_use_overlay_label">
+                <property name="visible">False</property>
+                <property name="halign">center</property>
+                <property name="valign">start</property>
+                <property name="label" translatable="yes">---</property>
               </object>
             </child>
 
@@ -18438,7 +18459,7 @@ Move a copy?</property>
         <child>
           <object class="GtkShortcutsGroup">
             <property name="title">Map Functions</property>
-            
+
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="accelerator">plus</property>
@@ -18545,12 +18566,19 @@ Move a copy?</property>
             </child>
             <child>
               <object class="GtkShortcutsShortcut">
+                <property name="accelerator">q</property>
+                <property name="title" translatable="yes">Flip Peptide</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
                 <property name="accelerator">&lt;Ctrl&gt;W</property>
                 <property name="title" translatable="yes">Add Water</property>
               </object>
             </child>
           </object>
         </child>
+
         <child>
           <object class="GtkShortcutsGroup">
             <property name="title">Function Keys</property>
