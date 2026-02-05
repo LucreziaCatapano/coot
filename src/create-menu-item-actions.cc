@@ -1226,7 +1226,6 @@ fill_and_show_shader_preferences() {
       gtk_widget_set_sensitive(fancy_vbox1, FALSE);
       gtk_widget_set_sensitive(fancy_vbox2, FALSE);
    }
-
    double v1 = graphics_info_t::ssao_strength;
    double v2 = graphics_info_t::SSAO_radius;
    double v3 = graphics_info_t::n_ssao_kernel_samples;
@@ -1241,7 +1240,7 @@ fill_and_show_shader_preferences() {
    gtk_range_set_value(GTK_RANGE(r1), v1);
    gtk_range_set_range(GTK_RANGE(r2), 0.0, 100.0);
    gtk_range_set_value(GTK_RANGE(r2), v2);
-   gtk_range_set_range(GTK_RANGE(r3), 0.0, 256.0);
+   gtk_range_set_range(GTK_RANGE(r3), 0.0, 512.0);
    gtk_range_set_value(GTK_RANGE(r3), v3);
    gtk_range_set_range(GTK_RANGE(r4), 0.0, 1.0);
    gtk_range_set_value(GTK_RANGE(r4), v4);
@@ -1885,7 +1884,7 @@ void acedrg_link_interface_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                                   G_GNUC_UNUSED GVariant *parameter,
                                   G_GNUC_UNUSED gpointer user_data) {
 
-   std::cout << "show acedrg link interface overlay" << std::endl;
+   // std::cout << "show acedrg link interface overlay" << std::endl;
    show_acedrg_link_interface_overlay();
    graphics_info_t::graphics_grab_focus();
 
@@ -4442,6 +4441,30 @@ perspective_view_action(G_GNUC_UNUSED GSimpleAction *simple_action,
    set_use_perspective_projection(1);
 }
 
+void
+side_by_side_stereo_cross_eyed_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                                      G_GNUC_UNUSED GVariant *parameter,
+                                      G_GNUC_UNUSED gpointer user_data) {
+   side_by_side_stereo_mode(0);
+   graphics_draw();
+}
+
+void
+side_by_side_stereo_wall_eyed_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                                     G_GNUC_UNUSED GVariant *parameter,
+                                     G_GNUC_UNUSED gpointer user_data) {
+   side_by_side_stereo_mode(1);
+   graphics_draw();
+}
+
+void
+side_by_side_stereo_mono_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                                G_GNUC_UNUSED GVariant *parameter,
+                                G_GNUC_UNUSED gpointer user_data) {
+   mono_mode();
+   graphics_draw();
+}
+
 
 // gui helper function
 std::vector<labelled_button_info_t>
@@ -5177,6 +5200,7 @@ void mutate_to_type_inner(const std::string &type) {
       g.mutate_residue_imol = imol;
       g.mutate_auto_fit_residue_imol = imol;
       coot::residue_spec_t res_spec(pp.second.second);
+      g.residue_type_chooser_auto_fit_flag = true; // do_mutation() does autofitting
       g.do_mutation(imol, res_spec, type, false); // not stub
    }
    g.graphics_grab_focus();
@@ -5946,6 +5970,9 @@ create_actions(GtkApplication *application) {
    add_action(        "rock_view_action",         rock_view_action);
    add_action( "perspective_view_action",  perspective_view_action);
    add_action("orthographic_view_action", orthographic_view_action);
+   add_action("side_by_side_stereo_cross_eyed_action", side_by_side_stereo_cross_eyed_action);
+   add_action("side_by_side_stereo_wall_eyed_action",  side_by_side_stereo_wall_eyed_action);
+   add_action("side_by_side_stereo_mono_action",       side_by_side_stereo_mono_action);
 
    add_action(     "residue_type_selection_action",      residue_type_selection_action);
    add_action(    "residues_with_alt_confs_action",     residues_with_alt_confs_action);
