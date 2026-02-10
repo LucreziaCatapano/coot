@@ -84,6 +84,7 @@
 #include "build/CalphaBuild.hh"
 #include "ideal/simple-restraint.hh"
 #include "coot-utils/positron.hh"
+#include "coot-utils/ptm-database.hh"
 #include "api/cell.hh"
 
 // #ifdef DO_GEOMETRY_GRAPHS
@@ -4142,6 +4143,7 @@ string   static std::string sessionid;
    static framebuffer blur_framebuffer; // from 2020
    static framebuffer combine_textures_using_depth_framebuffer;
    static unsigned int framebuffer_scale;
+   static GLuint screendump_target_framebuffer; // 0 = normal, non-zero = redirect attach_buffers() to this FBO
 
    void set_perspective_fov(float angle) { perspective_fov = angle; } // in degress (typically 30 or so)
 
@@ -4807,6 +4809,9 @@ string   static std::string sessionid;
       float get_P_z() { return cell.c * static_cast<float>(section_index)/static_cast<float>(molecules[imol].xmap.grid_sampling().nw()); }
    };
    static tomo_view_info_t tomo_view_info;
+
+   // ptm database
+   static coot::ptm_database_t ptm_database;
 
 };
 

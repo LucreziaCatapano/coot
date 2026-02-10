@@ -1484,6 +1484,7 @@ framebuffer graphics_info_t::blur_y_framebuffer;
 framebuffer graphics_info_t::combine_textures_using_depth_framebuffer;
 framebuffer graphics_info_t::blur_framebuffer; // 2020
 unsigned int graphics_info_t::framebuffer_scale = 1; // on supersampling by default.
+GLuint graphics_info_t::screendump_target_framebuffer = 0;
 
 bool graphics_info_t::perspective_projection_flag = false;
 float graphics_info_t::perspective_fov = 26.0; // was 30.0
@@ -1863,6 +1864,7 @@ bool graphics_info_t::tomo_picker_flag = false;
 graphics_info_t::tomo_view_info_t graphics_info_t::tomo_view_info;
 
 coot::inchikey_store_t graphics_info_t::inchikey_store;
+coot::ptm_database_t graphics_info_t::ptm_database;
 
 std::pair<bool, std::string> graphics_info_t::servalcat_fofc    = std::pair<bool, std::string> (false, "");
 std::pair<bool, std::string> graphics_info_t::servalcat_refine  = std::pair<bool, std::string> (false, "");

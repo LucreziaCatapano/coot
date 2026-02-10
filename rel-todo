@@ -1,9 +1,61 @@
 --- Items ---
 
-o get rid of prodrg_import_function() and references to it in skills.
-* Done
+o Lucrezia's Presentation:
+  interactive FFT.
+  with 2 sliders: Sharpening and Resolution cutoff
+  use raised cosine, or something similar
+
+o John Beale
+
+o Make a modern Blender screenshot
+
+o phenix geobonds
+
+o read/use PTM table in Coot
+   On add_PTM_apply_button_clicked, we need to check
+   the selected new residue type has a dictionary.
+   Else go and get it synchronously.
+
+o generate python api for gemmi like is done for chapi.
+  Turn this into Fortran api also?
+
+o Fix make_mask()
+
+o use a pre-existing map for make-mask()
+
+o create a mask map of a sphere where the sphere, is the plus part
+  and the - a reference grid is given, radius and postion.
+
+o z-score for ramas and rotas?
 
 o put Ligand builder in Ligand module
+
+o Clement: nice to have: function to calcuate mean, sd of a volume
+  around a point. alternative: at all of the positions of the atoms
+  in a specified residue - sphere_of_density_stats()
+
+o multipy a map by a map - e.g. local resolution.
+
+o multi-model ribbons for NMR
+* Done. Nice.
+
+o 1m5q for B-factor putty
+* Done. Nice.
+
+o put Ligand builder in Ligand module
+* Done.
+
+o Get Restraints for ligand
+* Done
+
+o restore the tube for normal ribbon diagram.
+* Done.
+
+o rainbow ribbon colours are too bright
+* Done.
+
+o get rid of prodrg_import_function() and references to it in skills.
+* Done
 
 o MolecularRepresentation.cpp line 654 - fix.
 * Done.
@@ -20,11 +72,8 @@ o where did we get to with the fat-worm (e.g. B-factor) representation?
 o rename parse_gphl_screen.py - remove parse_
 * Done.
 
-o read/use PTM table in Coot
-
 o screen table adps
-
-o rainbow ribbon colours are too bright
+* Done. For now
 
 o spermine structures analysis.
 * Done.
@@ -36,20 +85,15 @@ o get_gaussian_surface_for_atom_selection()
 * Done
 
 o make_gaussian_surface_map_for_atom_selection and return a map (create a map molecule)
+* Done.
 
-o Make a modern Blender screenshot
-
-o phenix geobonds
+o don't forget "proportional editing" - and domain rotation.
 
 o Clement: make a difference between sax data and our model
   (masking enenough?). Compare mask and gaussian surface map.
   Make mask have a smooth surface - by adding a b-factor.
 
 o Clemens: compile libccp4 with modern compiler? (building-coot) Needs new tar?
-
-o moorhen: make a ribbon diagram of NMR model 2luz
-
-o Coot: 2luz ribbon diagram, I want to see the ribbon diagram for each model.
 
 o Rota dodec colour, rama balls colours - what is the function?
   Send it to pumble
@@ -61,6 +105,8 @@ o have another bash at calculating occlusion
 o Use gemmi tar files in build-it-3-3
 
 o Don't forget the AXI analysis - what's going on there?
+
+o don't forget the rotamer values from new coot.
 
 o bonds and angles etc validation? in libcootapi.
 
