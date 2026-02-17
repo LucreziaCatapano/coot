@@ -2514,6 +2514,7 @@ get_map_colour(int imol) {
          colour.red   *= 65535;
          colour.green *= 65535;
          colour.blue  *= 65535;
+         colour.alpha *= 65535;
       }
    }
    std::string cmd = "get-map-colour";
@@ -5295,24 +5296,24 @@ int set_go_to_atom_chain_residue_atom_name_strings(const char *t1, const char *t
 
 
 int
-goto_next_atom_maybe_new(GtkWidget *goto_atom_window) {
+goto_next_atom_maybe_new() {
 
 //    int it2 = atoi(t2);
 //    return goto_near_atom_maybe(t1, it2, t3, res_entry, +1);
 
    graphics_info_t g;
-   return g.intelligent_next_atom_centring(goto_atom_window);
+   return g.intelligent_next_atom_centring();
 
 }
 
 int
-goto_previous_atom_maybe_new(GtkWidget *goto_atom_window) {
+goto_previous_atom_maybe_new() {
 
 //    int it2 = atoi(t2);
 //    return goto_near_atom_maybe(t1, it2, t3, res_entry, +1);
 
    graphics_info_t g;
-   return g.intelligent_previous_atom_centring(goto_atom_window);
+   return g.intelligent_previous_atom_centring();
 }
 
 
