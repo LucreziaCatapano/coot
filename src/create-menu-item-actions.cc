@@ -433,6 +433,15 @@ void curlew_action(G_GNUC_UNUSED GSimpleAction *simple_action,
 
 }
 
+void start_rpc_server_action(G_GNUC_UNUSED GSimpleAction *simple_action,
+                             G_GNUC_UNUSED GVariant *parameter,
+                             G_GNUC_UNUSED gpointer user_data) {
+
+   GtkWidget *frame = widget_from_builder("start_rpc_server_frame");
+   gtk_widget_set_visible(frame, TRUE);
+
+}
+
 void get_monomer_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                         G_GNUC_UNUSED GVariant *parameter,
                         G_GNUC_UNUSED gpointer user_data) {
@@ -2614,7 +2623,8 @@ void add_prosmart_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
 void add_rcrane_module_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                               G_GNUC_UNUSED GVariant *parameter,
                               G_GNUC_UNUSED gpointer user_data) {
-   std::cout << "INFO:: no RCrane" << std::endl;
+   // std::cout << "INFO:: no RCrane" << std::endl;
+   logger.log(log_t::INFO, "no RCrane");
    info_dialog("INFO:: No RCrane interface yet");
 }
 
@@ -3460,6 +3470,14 @@ void dna_rna_models_action(G_GNUC_UNUSED GSimpleAction *simple_action,
                            G_GNUC_UNUSED gpointer user_data) {
 
    GtkWidget *w = widget_from_builder("nucleotide_builder_dialog");
+   GtkWidget   *type_combobox = widget_from_builder("nucleotide_builder_type_combobox");
+   GtkWidget   *form_combobox = widget_from_builder("nucleotide_builder_form_combobox");
+   GtkWidget *strand_combobox = widget_from_builder("nucleotide_builder_strand_combobox");
+
+   gtk_combo_box_set_active(GTK_COMBO_BOX(type_combobox),   0);
+   gtk_combo_box_set_active(GTK_COMBO_BOX(form_combobox),   0);
+   gtk_combo_box_set_active(GTK_COMBO_BOX(strand_combobox), 0);
+
    set_transient_for_main_window(w);
    gtk_widget_set_visible(w, TRUE);
 }
@@ -5701,6 +5719,21 @@ delete_item_water(GSimpleAction *simple_action,
 }
 
 void
+delete_item_all_waters(GSimpleAction *simple_action,
+                       GVariant *parameter,
+                       gpointer user_data) {
+
+   graphics_info_t g;
+   std::pair<bool, std::pair<int, coot::atom_spec_t> > pp = g.active_atom_spec_simple();
+   if (pp.first) {
+      auto atom_spec = pp.second.second;
+      coot::residue_spec_t res_spec(atom_spec);
+      int imol = pp.second.first;
+      delete_waters(imol);
+   }
+}
+
+void
 delete_item_side_chain(GSimpleAction *simple_action,
                  GVariant *parameter,
                  gpointer user_data) {
@@ -5910,6 +5943,8 @@ create_actions(GtkApplication *application) {
    add_action("get_monomer_action", get_monomer_action);
    add_action(     "curlew_action",      curlew_action);
    add_action(       "exit_action",        exit_action);
+
+   add_action("start_rpc_server_action", start_rpc_server_action);
 
    // 2025-09-15 13:00 PE hack functions
    add_action("show_accession_code_fetch_frame_oca",        show_accession_code_fetch_frame_oca);
@@ -6225,6 +6260,7 @@ create_actions(GtkApplication *application) {
    // 2025-09-15 17:24 PE hack functions
    add_action("delete_item_atom", delete_item_atom);
    add_action("delete_item_water", delete_item_water);
+   add_action("delete_item_all_waters", delete_item_all_waters);
    add_action("delete_item_side_chain", delete_item_side_chain);
    add_action("delete_item_side_chain_residue_range", delete_item_side_chain_residue_range);
    add_action("delete_item_side_chains_in_chain", delete_item_side_chains_in_chain);

@@ -3893,11 +3893,11 @@ on_stereo_dialog_zalman_stereo_radiobutton_toggled
 
 extern "C" G_MODULE_EXPORT
 gboolean
-on_shader_settings_dialog_destroy(GtkWidget       *widget,
+on_shader_settings_dialog_close_request(GtkWidget       *widget,
                                   gpointer         user_data) {
 
-   // this doesn't happen
-   std::cout << "-------------- on_shader_settings_dialog_ destroy " << std::endl;
+   // 2026-02-21-PE this now does happen
+   gtk_widget_set_visible(widget, FALSE);
    return TRUE;
 }
 
@@ -4083,7 +4083,22 @@ show_anisotropic_atoms_as_ortep_switch_state_set(GtkSwitch *switch_widget,
    }
 }
 
+extern "C" G_MODULE_EXPORT
+void
+show_anisotropic_atoms_as_empty_switch_state_set(GtkSwitch *switch_widget,
+                                                 gboolean   state,
+                                                 gpointer   user_data) {
 
+   GtkWidget *bond_parameters_molecule_comboboxtext =
+      widget_from_builder("bond_parameters_molecule_comboboxtext");
+
+   if (bond_parameters_molecule_comboboxtext) {
+      graphics_info_t g;
+      int imol = g.combobox_get_imol(GTK_COMBO_BOX(bond_parameters_molecule_comboboxtext));
+      g.molecules[imol].set_show_aniso_atoms_as_empty(state);
+      g.graphics_draw();
+   }
+}
 
 extern "C" G_MODULE_EXPORT
 void
@@ -6740,7 +6755,7 @@ on_validation_graph_model_combobox_changed(GtkComboBox* self, gpointer user_data
       if (false) {
          std::string mess = "on_validation_graph_model_combobox_changed(): ";
          mess += "Could not get active iter in validation graph model ComboBox";
-         g_warning(mess.c_str());
+         g_warning("%s", mess.c_str());
       }
    }
 }
@@ -6813,6 +6828,8 @@ on_density_correlation_graph_toggled(GtkCheckButton* self, gpointer user_data) {
    on_validation_graph_checkbutton_toggled(self,coot::validation_graph_type::density_correlation);
 }
 
+
+
 extern "C" G_MODULE_EXPORT
 void
 on_ramachandran_plot_molecule_chooser_ok_button_clicked(GtkButton       *button,
@@ -6870,6 +6887,26 @@ on_map_properties_dialog_specularity_state_checkbutton_toggled(GtkCheckButton *c
    graphics_info_t::graphics_grab_focus();
 
 }
+
+// ----------------------------------- undocked validation graphs -----
+
+
+extern "C" G_MODULE_EXPORT
+void
+on_validation_graphs_dialog_close_button_clicked(GtkButton       *button,
+                                                 gpointer         user_data) {
+
+   GtkWidget *dialog = widget_from_builder("validation_graphs_dialog");
+   gtk_widget_set_visible(dialog, FALSE);
+}
+
+extern "C" G_MODULE_EXPORT
+void
+on_validation_graphs_dialog_destroy(GtkWidget       *widget,
+                                    gpointer         user_data) {
+   gtk_widget_set_visible(widget, FALSE);
+}
+
 
 // ----------------------------------- updating maps -----
 

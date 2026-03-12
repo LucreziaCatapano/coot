@@ -34,7 +34,6 @@
 #include "glib.h"
 #include "gtk/gtk.h"
 #include "gtk/gtkshortcut.h"
-#include "pytypedefs.h"
 #ifdef USE_PYTHON
 #ifndef PYTHONH
 #define PYTHONH
@@ -51,6 +50,9 @@
 #include <fstream>
 #include <algorithm>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #if !defined(_MSC_VER)
 #include <glob.h> // for globbing.  Needed here?
 #endif
@@ -60,6 +62,11 @@
 #include "c-interface-scm.hh"
 #include "guile-fixups.h"
 #endif // USE_GUILE
+
+#ifdef USE_GUILE
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvolatile"
+#endif
 
 #ifdef USE_PYTHON
 #include "c-interface-python.hh"
@@ -106,6 +113,7 @@
 
 #include "utils/coot-utils.hh"
 #include "coot-utils/coot-map-utils.hh"
+#include "coot-utils/read-amber-trajectory.hh"
 #include "coot-database.hh"
 #include "coot-fileselections.h"
 
@@ -137,9 +145,13 @@
 #include "read-molecule.hh" // now with std::string args
 
 #include "widget-from-builder.hh"
+#include "gtk-manual.hh"
 #include "glarea_tick_function.hh"
 
 #include "validation-graphs/sequence-view-widget.hh"
+
+#include "json.hpp"
+using json = nlohmann::json;
 
 #include "utils/logging.hh"
 extern logging logger;
@@ -983,6 +995,34 @@ int read_coordinates_as_string(const std::string &file_contents, const std::stri
 }
 
 
+int read_amber_trajectory(int imol_coords,
+                          const std::string &trajectory_file_name,
+                          int start_frame,
+                          int end_frame,
+                          int stride) {
+
+   int imol = -1;
+   graphics_info_t g;
+
+   if (!is_valid_model_molecule(imol_coords)) {
+      std::cout << "WARNING:: read_amber_trajectory: invalid topology molecule " << imol_coords << std::endl;
+      return -1;
+   }
+
+   mmdb::Manager *topology_mol = g.molecules[imol_coords].atom_sel.mol;
+   mmdb::Manager *traj_mol = coot::read_amber_trajectory(topology_mol, trajectory_file_name,
+                                                         start_frame, end_frame, stride);
+   if (traj_mol) {
+      imol = g.create_molecule();
+      atom_selection_container_t asc = make_asc(traj_mol);
+      std::string name = trajectory_file_name + "_trajectory";
+      g.molecules[imol].install_model(imol, asc, g.Geom_p(), name, 1);
+   }
+
+   return imol;
+}
+
+
 //! set (or unset) GEMMI as the molecule parser. Currently by passing an int.
 void set_use_gemmi_as_model_molecule_parser(int state) {
 
@@ -1182,7 +1222,8 @@ void zalman_stereo_mode() {
 	    short int try_hardware_stereo_flag = 5;
 	    GtkWidget *glarea = gl_extras(vbox, try_hardware_stereo_flag);
 	    if (glarea) {
-	       std::cout << "INFO:: switch to zalman_stereo_mode succeeded\n";
+	       // std::cout << "INFO:: switch to zalman_stereo_mode succeeded\n";
+	       logger.log(log_t::INFO, "switch to zalman_stereo_mode succeeded");
 	       if (graphics_info_t::idle_function_spin_rock_token) {
 		  toggle_idle_spin_function(); // turn it off;
 	       }
@@ -1233,7 +1274,8 @@ void mono_mode() {
 	    short int try_hardware_stereo_flag = 0;
 	    GtkWidget *glarea = gl_extras(vbox, try_hardware_stereo_flag);
 	    if (glarea) {
-	       std::cout << "INFO:: switch to mono_mode succeeded\n";
+	       // std::cout << "INFO:: switch to mono_mode succeeded\n";
+	       logger.log(log_t::INFO, "switch to mono_mode succeeded");
 	       if (graphics_info_t::idle_function_spin_rock_token) {
 		  toggle_idle_spin_function(); // turn it off;
 	       }
@@ -1797,6 +1839,19 @@ set_main_window_title(const char *s) {
       }
    }
 }
+
+
+/*! \brief set the state of the validation graphs box
+ *
+ * By "docked" I mean, in the main window. The alternative
+ * is a floating dialog.
+ *
+ * @param state 0 is not docked, 1 is docked
+ */
+void set_validation_graphs_is_docked(short int state) {
+   graphics_info_t::validation_graphs_is_docked = state;
+}
+
 
 
 
@@ -4321,6 +4376,82 @@ void set_view_quaternion(float i, float j, float k, float l) {
 
 
 
+/*! \brief Set the view
+ *
+ * the view is a JSON string of a dict of the orientation quaternion, the zoom and the rotation centre.
+ *
+ * @param view_as_json the view parameter as a JSON string
+ * */
+void set_view_from_json(const std::string &view_as_json) {
+
+   try {
+      json j = json::parse(view_as_json);
+      json j_rc   = j["rotation-centre"];
+      json j_quat = j["quaternion"];
+      json j_zoom = j["zoom"];
+      if (j_rc.is_array()) {
+         if (j_quat.is_array()) {
+            if (j_zoom.is_number_float()) {
+               float zoom = j_zoom;
+               unsigned int rc_size = j_rc.size();
+               if (rc_size == 3) {
+                  float rc_0 = j_rc[0];
+                  float rc_1 = j_rc[1];
+                  float rc_2 = j_rc[2];
+                  coot::Cartesian rc(rc_0, rc_1, rc_2);
+                  unsigned int quat_size = j_quat.size();
+                  if (quat_size == 4) {
+                     float quat_0 = j_quat[0];
+                     float quat_1 = j_quat[1];
+                     float quat_2 = j_quat[2];
+                     float quat_3 = j_quat[3];
+                     glm::quat q(quat_0, quat_1, quat_2, quat_3);
+                     graphics_info_t::set_view(q, rc, zoom);
+                  }
+               }
+            }
+         }
+      }
+   }
+   catch(const nlohmann::detail::type_error &e) {
+      std::cout << "ERROR:: " << e.what() << std::endl;
+   }
+   catch(const nlohmann::detail::parse_error &e) {
+      std::cout << "ERROR:: " << e.what() << std::endl;
+   }
+
+}
+
+/*! \brief get the view
+ *
+ * the view is a JSON string of a dict of the orientation quaternion, the zoom and the rotation centre.
+ *
+ * */
+std::string get_view_as_json() {
+
+   json j_rc = json::array();
+   auto rc = graphics_info_t::get_rotation_centre();
+   j_rc.push_back(rc.x);
+   j_rc.push_back(rc.y);
+   j_rc.push_back(rc.z);
+   json j_quat = json::array();
+   glm::quat quat = graphics_info_t::view_quaternion;
+   j_quat.push_back(quat[3]); // 2026-03-10-PE, weird, eh?
+   j_quat.push_back(quat[0]);
+   j_quat.push_back(quat[1]);
+   j_quat.push_back(quat[2]);
+   json j_zoom = graphics_info_t::zoom;
+
+   json j;
+   j["zoom"] = j_zoom;
+   j["rotation-centre"] = j_rc;
+   j["quaternion"] = j_quat;
+
+   std::string js = j.dump(2);
+
+   return js;
+}
+
 /* Return 1 if we moved to a molecule centre, else go to origin and
    return 0. */
 /* centre on last-read (and displayed) molecule with zoom 100. */
@@ -4518,7 +4649,8 @@ void screendump_image(const char *filename) {
    graphics_draw();
 
    int istatus = graphics_info_t::screendump_image(filename);
-   std::cout << "INFO:: screendump_image status " << istatus << std::endl;
+   // std::cout << "INFO:: screendump_image status " << istatus << std::endl;
+   logger.log(log_t::INFO, "screendump_image status", istatus);
    if (istatus == 1) {
       std::string s = "Screendump image ";
       s += filename;
@@ -6046,22 +6178,19 @@ set_display_control_button_state(int imol, const std::string &button_type, int s
 
          GtkWidget *item_widget = gtk_widget_get_first_child(display_control_vbox);
          while (item_widget) {
-            GtkWidget *child_0 = gtk_widget_get_first_child(item_widget);
-            GtkWidget *child_1 = gtk_widget_get_next_sibling(child_0);
-            GtkWidget *child_2 = gtk_widget_get_next_sibling(child_1);
-            GtkWidget *child_3 = gtk_widget_get_next_sibling(child_2);
-            GtkWidget *display_check_button = child_2;
-            GtkWidget *active_check_button  = child_3;
-            // std::cout << "child_2 " << child_2 << " child_3 " << child_3 << std::endl;
             int imol_widget = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(item_widget), "imol"));
             if (imol_widget == imol) {
-               if (button_type == "Displayed") {
-                  // actually I need only set the state if the state is not the current
-                  // state of the check button.
-                  gtk_check_button_set_active(GTK_CHECK_BUTTON(display_check_button), state);
-               }
-               if (button_type == "Active") {
-                  gtk_check_button_set_active(GTK_CHECK_BUTTON(active_check_button), state);
+               // item_widget is a mol_vbox, the hbox with controls is its first child
+               GtkWidget *hbox = gtk_widget_get_first_child(item_widget);
+               if (hbox) {
+                  GtkWidget *display_check_button = GTK_WIDGET(g_object_get_data(G_OBJECT(hbox), "display_check_button"));
+                  GtkWidget *active_check_button  = GTK_WIDGET(g_object_get_data(G_OBJECT(hbox), "active_check_button"));
+                  if (button_type == "Displayed" && display_check_button) {
+                     gtk_check_button_set_active(GTK_CHECK_BUTTON(display_check_button), state);
+                  }
+                  if (button_type == "Active" && active_check_button) {
+                     gtk_check_button_set_active(GTK_CHECK_BUTTON(active_check_button), state);
+                  }
                }
             }
             item_widget = gtk_widget_get_next_sibling(item_widget);
@@ -6211,7 +6340,8 @@ void display_only_active() {
 
    std::pair<bool, std::pair<int, coot::atom_spec_t> > aa = active_atom_spec();
 
-   std::cout << "INFO:: display_only_active()" << aa.first << " " << aa.second.first << " " << aa.second.second << std::endl;
+   // std::cout << "INFO:: display_only_active()" << aa.first << " " << aa.second.first << " " << aa.second.second << std::endl;
+   logger.log(log_t::INFO, "display_only_active()", aa.first, aa.second.first, aa.second.second.format());
 
    if (aa.first) {
       int imol_active = aa.second.first;
@@ -6290,7 +6420,8 @@ show_spacegroup(int imol) {
 
    if (is_valid_model_molecule(imol) || is_valid_map_molecule(imol)) {
       std::string spg = graphics_info_t::molecules[imol].show_spacegroup();
-      std::cout << "INFO:: spacegroup: " << spg << std::endl;
+      // std::cout << "INFO:: spacegroup: " << spg << std::endl;
+      logger.log(log_t::INFO, "spacegroup:", spg);
       unsigned int l = spg.length();
       char *s = new char[l+1];
       strncpy(s, spg.c_str(), l+1);
@@ -7548,8 +7679,9 @@ run_command_line_scripts() {
                 << std::endl;
 
    if (graphics_info_t::command_line_scripts.size()) {
-      std::cout << "INFO:: There are " << graphics_info_t::command_line_scripts.size()
-		<< " command line scripts to run\n";
+      // std::cout << "INFO:: There are " << graphics_info_t::command_line_scripts.size()
+      //          << " command line scripts to run\n";
+      logger.log(log_t::INFO, "There are", graphics_info_t::command_line_scripts.size(), "command line scripts to run");
       for (unsigned int i=0; i<graphics_info_t::command_line_scripts.size(); i++)
 	 std::cout << "    " << graphics_info_t::command_line_scripts[i].c_str()
 		   << std::endl;
@@ -8260,13 +8392,15 @@ int read_cif_data(const char *filename, int imol_coordinates) {
       // link itself.
       //
       if (status != 0 || !S_ISREG (s.st_mode)) {
-	 std::cout << "INFO:: Error reading " << filename << std::endl;
+	 // std::cout << "INFO:: Error reading " << filename << std::endl;
+	 logger.log(log_t::INFO, "Error reading " + std::string(filename));
 	 if (S_ISDIR(s.st_mode)) {
 	    std::cout << filename << " is a directory." << std::endl;
 	 }
 	 return -1; // which is status in an error
       } else {
-	 std::cout << "INFO:: Reading cif file: " << filename << std::endl;
+	 // std::cout << "INFO:: Reading cif file: " << filename << std::endl;
+	 logger.log(log_t::INFO, "Reading cif file: " + std::string(filename));
 	 graphics_info_t g;
 	 int imol = g.create_molecule();
 	 int istat =
@@ -8316,7 +8450,8 @@ int read_cif_data_2fofc_map(const char *filename, int imol_coordinates) {
 
       if (is_valid_model_molecule(imol_coordinates)) {
 
-	 std::cout << "INFO:: Reading cif file: " << filename << std::endl;
+	 // std::cout << "INFO:: Reading cif file: " << filename << std::endl;
+	 logger.log(log_t::INFO, "Reading cif file: " + std::string(filename));
 
 	 graphics_info_t g;
 
@@ -9157,6 +9292,7 @@ void make_generic_surface(int imol, const char *selection_str, int mode) {
       obj.mesh.set_material_specularity(0.7, 128);
       obj.mesh.setup_buffers();
 
+      update_display_control_mesh_toggles(imol);
       graphics_draw();
    }
 }
