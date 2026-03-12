@@ -2361,15 +2361,10 @@ void set_symmetry_colour(float r, float g, float b);
 
 /*  Section Map colour*/
 /*! \name   Map colour*/
-<<<<<<< HEAD
 /* \{ */
 /*! \brief Set the colour map rotation (hue change) for maps
 //! @param f the hue change step in degrees, default for maps is 14 degrees. */
 void set_colour_map_rotation_for_map(float f);
-=======
-/*! \{ */
-/*! \brief set the colour map rotation (hue change) for maps
->>>>>>> paul-main
 
 /*! \brief Set the colour map rotation
 //! @param imol the molecule index
